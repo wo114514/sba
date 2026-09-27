@@ -89,7 +89,7 @@ public:
     int getBlock() const { return block;}
 
     void attack(Player& p, vector<string>& logs) {
-        p.takeDamage(GetRandomValue(atk-1, atk+1), logs); 
+        p.takeDamage(GetRandomValue(atk, atk), logs); 
     }
 };
 
