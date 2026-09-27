@@ -48,6 +48,10 @@ public:
             hp = 0;
         }
     }
+    void resetBlock(vector<string>& logs) {
+        block = 0;
+        logs.push_back(TextFormat("%s's block reset to 0", name.c_str()));
+    }
 };
 
 class Player : public Character {
@@ -62,10 +66,7 @@ public:
     int getEnergy() const { return energy; }
     int getMaxEnergy() const { return maxEnergy; }
 
-    void resetBlock(vector<string>& logs) {
-        block = 0;
-        logs.push_back(TextFormat("%s's block reset to 0", name.c_str()));
-    }
+    
     
     void resetEnergy(vector<string>& logs) {
         energy = maxEnergy;
@@ -354,6 +355,9 @@ int main(){
     InitWindow(screenWidth, screenHeight, "Slay the Math");
     SetTargetFPS(60); 
 
+    // Init Random Seed
+    SetRandomSeed(GetTime()); 
+
     // Init font
     Font customFont = LoadFont("resources/font/JetBrainsMono-Regular.ttf");
 
@@ -522,8 +526,10 @@ int main(){
                 }
 
                 Vector2 mousePos = GetMousePosition();
+
+                // Question text starts here
                 float questionX = 320.0f;
-                float questionY = 280.0f; // Question text always starts here
+                float questionY = 280.0f; 
 
                 // Atuomatic to new line
                 string questionFullText = TextFormat("Question: %s", currentQuiz.title.c_str());
@@ -634,6 +640,9 @@ int main(){
                     p.resetEnergy(combatLogs);
                     p.resetBlock(combatLogs);
                     drawCards(combatLogs, drawPile, hand, discardPile, 5);
+                    //Enemy gains block (random)
+                    e.resetBlock(combatLogs);
+                    e.addBlock(GetRandomValue(0, 3), combatLogs);
                 }
                 break;
             }
@@ -641,15 +650,30 @@ int main(){
         // Drawing
         BeginDrawing();
         ClearBackground(BLACK); 
-
-         // Display basic stats with customFont
-        DrawTextEx(customFont, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 50}, 24, 1, BLUE);
         
-        // Display basic stats with customFont
-        DrawTextEx(customFont, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 50}, 24, 1, BLUE);
-        DrawTextEx(customFont, TextFormat("%s HP: %d / %d", e.getName().c_str(), e.getHp(), e.getMaxHp()), Vector2{950, 50}, 24, 1, RED);
+        //Enemy's intent classification
+        string enemyIntent = "";
+        if (e.getBlock() > 0 && e.getAtk() > 0) {
+            enemyIntent = "Strategic Attack";
+        } else if (e.getAtk() > 0) {
+            enemyIntent = "Attack";
+        } else if (e.getBlock() > 0) {
+            enemyIntent = "Strategic";
+        }
 
-        // Display different text based on the current game state
+        // Display player info
+        DrawTextEx(customFont, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 40}, 24, 1, BLUE);
+        DrawTextEx(customFont, TextFormat("Player Damage: %d", turnBaseDamage), Vector2{50, 70}, 24, 1, BLUE);
+        DrawTextEx(customFont, TextFormat("Player Energy: %d / %d", p.getEnergy(), p.getMaxEnergy()), Vector2{50, 100}, 24, 1, BLUE);
+        DrawTextEx(customFont, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
+
+        // Display enemy info
+        DrawTextEx(customFont, TextFormat("%s HP: %d / %d", e.getName().c_str(), e.getHp(), e.getMaxHp()), Vector2{900, 40}, 24, 1, RED);
+        DrawTextEx(customFont, TextFormat("%s ATK: %d", e.getName().c_str(), e.getAtk()), Vector2{900, 70}, 24, 1, RED);
+        DrawTextEx(customFont, TextFormat("%s Intent: %s", e.getName().c_str(), enemyIntent.c_str()), Vector2{900, 100}, 24, 1, RED);
+        DrawTextEx(customFont, TextFormat("%s BLOCK: %d", e.getName().c_str(), e.getBlock()), Vector2{900, 130}, 24, 1, RED);
+
+        // Display different text based on game state
         if (currentState == STATE_PLAYER_TURN) {
             DrawTextEx(customFont, "Current State: [ PLAYER TURN ]", Vector2{320, 240}, 32, 1, GOLD);
             DrawTextEx(customFont, "Press [ SPACE ] or click the button to end your turn", Vector2{320, 280}, 26, 1, GRAY);
