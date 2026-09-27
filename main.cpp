@@ -89,7 +89,7 @@ public:
     int getBlock() const { return block;}
 
     void attack(Player& p, vector<string>& logs) {
-        p.takeDamage(GetRandomValue(atk-10, atk+10), logs); 
+        p.takeDamage(GetRandomValue(atk-1, atk+1), logs); 
     }
 };
 
@@ -360,7 +360,7 @@ int main(){
     // Init player
     Player p ("IronClad", 80, 80, 0, 3, 3);
     
-    Enemy e ("Anthony", 150, 150, 0, 12);
+    Enemy e ("Anthony", 150, 150, 0, 16);
     
     //Deck Info
     // const Card CARD_DATABASE[6] = {
