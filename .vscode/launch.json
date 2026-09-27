@@ -12,7 +12,6 @@
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
-            // 修改這裡：指向 compiler 資料夾內的 bin\\gdb.exe
             "miDebuggerPath": "${workspaceFolder}\\compiler\\bin\\gdb.exe",
             "setupCommands": [
                 {

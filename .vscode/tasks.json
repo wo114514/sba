@@ -3,7 +3,6 @@
         {
             "type": "cppbuild",
             "label": "C/C++: g++.exe build active file",
-            // 修改這裡：指向 compiler 資料夾內的 bin\\g++.exe
             "command": "${workspaceFolder}\\compiler\\bin\\g++.exe",
             "args": [
                 "-fdiagnostics-color=always",
