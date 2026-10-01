@@ -1,10 +1,10 @@
 #include "raylib.h"
 #include <iostream>
 #include <vector>
-#include <cctype>
 using namespace std;
 
 enum GameState {
+    STATE_MENU,
     STATE_PLAYER_TURN,
     STATE_MATH_QUIZ,
     STATE_ENEMY_TURN,
