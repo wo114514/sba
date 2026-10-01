@@ -38,7 +38,7 @@ public:
         else{
             Damage -= block;
             hp -= Damage;
-            if (block > 0){
+            if (block >= 0){
                 logs.push_back(TextFormat("%s blocks %d damage", name.c_str(), block)); 
             }
             logs.push_back(TextFormat("%s takes %d damage", name.c_str(), Damage));
@@ -86,7 +86,6 @@ public:
         : Character(eName, eHp, eMaxHp, eBlock), atk(eAtk) {}
         
     int getAtk() const { return atk; }
-    int getBlock() const { return block;}
 
     void attack(Player& p, vector<string>& logs) {
         p.takeDamage(GetRandomValue(atk, atk), logs); 
@@ -98,16 +97,20 @@ struct Card {
     int cost;
     int damage;
     int block;
+    int drawNumber;
 };
 
-const Card CARD_DATABASE[7] = {
-    {"Strike", 1, 6, 0},//0
-    {"Defend", 1, 0, 5},//1
-    {"Bludgeon", 3, 30, 0},//2
-    {"IronWave", 1, 5, 5},//3
-    {"Ultimate Strike", 1, 12, 0},//4
-    {"Ultimate Defend", 1, 0, 11},//5
-    {"Dash", 2, 10, 10},//6
+const Card CARD_DATABASE[10] = {
+    {"Strike", 1, 6, 0, 0},//0
+    {"Defend", 1, 0, 5, 0},//1
+    {"Bludgeon", 3, 30, 0, 0},//2
+    {"IronWave", 1, 5, 5, 0},//3
+    {"Ultimate Strike", 1, 12, 0, 0},//4
+    {"Ultimate Defend", 1, 0, 11, 0},//5
+    {"Dash", 2, 10, 10, 0},//6
+    {"Pommel Strike", 1, 9, 0, 1},//7
+    {"Shrug It Off", 1, 0, 8, 1},//8
+    {"Battle Trance", 0, 0, 0, 2}//9
 };
 
 void shuffleDeck(vector<string>& logs, vector<int>& discardPile, vector<int>& drawPile) {
@@ -240,6 +243,18 @@ int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, i
             DrawTextEx(font, TextFormat("DEF: %d", currentCard.block), Vector2{textAlignX, blockYOffset}, 24, 1, BLUE);
         }
         
+        // Draw DRAW 
+        if (currentCard.drawNumber > 0) {
+            float drawYOffset = currentCardY + 77.0f;
+            if (currentCard.damage > 0) {
+                drawYOffset += 24.0f;
+            }
+            if (currentCard.block > 0){
+                drawYOffset += 24.0f;
+            }
+            DrawTextEx(font, TextFormat("DRAW: %d", currentCard.drawNumber), Vector2{textAlignX, drawYOffset}, 24, 1, YELLOW);
+        }
+
         // Draw Card Index 
         DrawTextEx(font, TextFormat("#%d", i + 1), Vector2{posX + cardWidth - 32, currentCardY + cardHeight - 22}, 16, 1, WHITE);
     }
@@ -369,19 +384,22 @@ int main(){
     
     //InitDeck Info
     /*
-const Card CARD_DATABASE[7] = {
-    {"Strike", 1, 6, 0},//0
-    {"Defend", 1, 0, 5},//1
-    {"Bludgeon", 3, 30, 0},//2
-    {"IronWave", 1, 5, 5},//3
-    {"Ultimate Strike", 1, 12, 0},//4
-    {"Ultimate Defend", 1, 0, 11},//5
-    {"Dash", 2, 10, 10},//6
-};
+    const Card CARD_DATABASE[7] = {
+        {"Strike", 1, 6, 0, 0},//0
+        {"Defend", 1, 0, 5, 0},//1
+        {"Bludgeon", 3, 30, 0, 0},//2
+        {"IronWave", 1, 5, 5, 0},//3
+        {"Ultimate Strike", 1, 12, 0, 0},//4
+        {"Ultimate Defend", 1, 0, 11, 0},//5
+        {"Dash", 2, 10, 10, 0},//6
+        {"Pommel Strike", 1, 9, 0, 1},//7
+        {"Shrug It Off", 1, 0, 8, 1},//8
+        {"Battle Trance", 0, 0, 0, 2}//9
+    };
     */
 
     // Init Piles
-    vector<int> drawPile = {0, 0, 0, 0, 1, 1, 1, 1, 2, 3, 4, 5, 6};
+    vector<int> drawPile = {0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     vector<int> hand = { };
     vector<int> discardPile = { };
 
@@ -472,17 +490,21 @@ const Card CARD_DATABASE[7] = {
                 if (playCardTriggered && playerSelectedCard != -1) {
                     int cardID = hand[playerSelectedCard];
                     Card currentCard = CARD_DATABASE[cardID];
+                    // Card logic
                     if (p.getEnergy() >= currentCard.cost) {
                         combatLogs.push_back(TextFormat("Played %s", currentCard.name.c_str()));
                         p.useEnergy(currentCard.cost);
                         if (currentCard.damage > 0){
                             totalQuestions++;
                             turnBaseDamage += currentCard.damage; 
-                            combatLogs.push_back(TextFormat("turnBaseDamage + %d", currentCard.damage));
                         }
                         if (currentCard.block > 0){
                             p.addBlock(currentCard.block, combatLogs);
-                        }                        
+                        }          
+                        if(currentCard.drawNumber > 0){
+                            drawCards(combatLogs, drawPile, hand, discardPile, currentCard.drawNumber);
+                        }
+                        // Move the card into discardPile              
                         discardPile.push_back(cardID);
                         hand.erase(hand.begin() + playerSelectedCard);
                         playerSelectedCard = -1; 
