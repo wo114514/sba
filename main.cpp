@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include <iostream>
 #include <vector>
+#include <time.h> 
 using namespace std;
 
 enum GameState {
@@ -66,8 +67,6 @@ public:
     int getEnergy() const { return energy; }
     int getMaxEnergy() const { return maxEnergy; }
 
-    
-    
     void resetEnergy(vector<string>& logs) {
         energy = maxEnergy;
         logs.push_back(TextFormat("%s's energy reset to %d", name.c_str(), maxEnergy));
@@ -260,7 +259,8 @@ struct QuizInfo {
 struct QuizButton {
     Rectangle rect;
     string text;
-    char choice; // Can be 'A', 'B', 'C', or 'D'
+    //'A', 'B', 'C', or 'D'
+    char choice; 
     bool isHovered;
     // Init buttons
     void init(char ch) {
@@ -357,7 +357,7 @@ int main(){
     SetTargetFPS(60); 
 
     // Init Random Seed
-    SetRandomSeed(GetTime()); 
+    SetRandomSeed((unsigned int)time(NULL)); 
 
     // Init font
     Font customFont = LoadFont("resources/font/JetBrainsMono-Regular.ttf");
@@ -646,7 +646,7 @@ const Card CARD_DATABASE[7] = {
                     drawCards(combatLogs, drawPile, hand, discardPile, 5);
                     //Enemy gains block (random)
                     e.resetBlock(combatLogs);
-                    e.addBlock(GetRandomValue(0, 3), combatLogs);
+                    e.addBlock(GetRandomValue(0, 5), combatLogs);
                 }
                 break;
             }
