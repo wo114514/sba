@@ -100,7 +100,7 @@ struct Card {
     int drawNumber;
 };
 
-const Card CARD_DATABASE[10] = {
+const Card CARD_DATABASE[11] = {
     {"Strike", 1, 6, 0, 0},//0
     {"Defend", 1, 0, 5, 0},//1
     {"Bludgeon", 3, 30, 0, 0},//2
@@ -252,7 +252,7 @@ int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, i
             if (currentCard.block > 0){
                 drawYOffset += 24.0f;
             }
-            DrawTextEx(font, TextFormat("DRAW: %d", currentCard.drawNumber), Vector2{textAlignX, drawYOffset}, 24, 1, YELLOW);
+            DrawTextEx(font, TextFormat("DRAW: %d", currentCard.drawNumber), Vector2{textAlignX, drawYOffset}, 24, 1, GOLD);
         }
 
         // Draw Card Index 
