@@ -31,7 +31,7 @@ public:
         block += blockValue;
     }
     void takeDamage(int Damage, vector<string>& logs){
-        if(block > Damage){
+        if(block >= Damage){
             logs.push_back(TextFormat("%s blocks %d damage", name.c_str(), Damage)); 
             block -= Damage;
         }
