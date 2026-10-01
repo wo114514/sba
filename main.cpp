@@ -101,13 +101,14 @@ struct Card {
     int block;
 };
 
-const Card CARD_DATABASE[6] = {
-    {"Strike", 1, 6, 0},
-    {"Defend", 1, 0, 5},
-    {"Bludgeon", 3, 28, 0},
-    {"IronWave", 1, 5, 5},
-    {"Ultimate Strike", 1, 14, 0},
-    {"Ultimate Defend", 1, 0, 11},
+const Card CARD_DATABASE[7] = {
+    {"Strike", 1, 6, 0},//0
+    {"Defend", 1, 0, 5},//1
+    {"Bludgeon", 3, 30, 0},//2
+    {"IronWave", 1, 5, 5},//3
+    {"Ultimate Strike", 1, 12, 0},//4
+    {"Ultimate Defend", 1, 0, 11},//5
+    {"Dash", 2, 10, 10},//6
 };
 
 void shuffleDeck(vector<string>& logs, vector<int>& discardPile, vector<int>& drawPile) {
@@ -366,18 +367,21 @@ int main(){
     
     Enemy e ("Anthony", 150, 150, 0, 16);
     
-    //Deck Info
-    // const Card CARD_DATABASE[6] = {
-    //     0{"Strike", 1, 6, 0},
-    //     1{"Defend", 1, 0, 5},
-    //     2{"Bludgeon", 3, 28, 0},
-    //     3{"IronWave", 1, 5, 5},
-    //     4{"Ultimate Strike", 1, 14, 0},
-    //     5{"Ultimate Defend", 1, 0, 11},
-    // };
+    //InitDeck Info
+    /*
+const Card CARD_DATABASE[7] = {
+    {"Strike", 1, 6, 0},//0
+    {"Defend", 1, 0, 5},//1
+    {"Bludgeon", 3, 30, 0},//2
+    {"IronWave", 1, 5, 5},//3
+    {"Ultimate Strike", 1, 12, 0},//4
+    {"Ultimate Defend", 1, 0, 11},//5
+    {"Dash", 2, 10, 10},//6
+};
+    */
 
     // Init Piles
-    vector<int> drawPile = {0, 0, 0, 0, 1, 1, 1, 1, 2, 3, 4, 5};
+    vector<int> drawPile = {0, 0, 0, 0, 1, 1, 1, 1, 2, 3, 4, 5, 6};
     vector<int> hand = { };
     vector<int> discardPile = { };
 
@@ -664,7 +668,7 @@ int main(){
         // Display player info
         DrawTextEx(customFont, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 40}, 24, 1, BLUE);
         DrawTextEx(customFont, TextFormat("Player Damage: %d", turnBaseDamage), Vector2{50, 70}, 24, 1, BLUE);
-        DrawTextEx(customFont, TextFormat("Player Energy: %d / %d", p.getEnergy(), p.getMaxEnergy()), Vector2{50, 100}, 24, 1, BLUE);
+        DrawTextEx(customFont, TextFormat("Player Questions: %d", totalQuestions), Vector2{50, 100}, 24, 1, BLUE);
         DrawTextEx(customFont, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
 
         // Display enemy info
