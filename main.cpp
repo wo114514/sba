@@ -38,7 +38,7 @@ public:
         else{
             Damage -= block;
             hp -= Damage;
-            if (block >= 0){
+            if (block > 0){
                 logs.push_back(TextFormat("%s blocks %d damage", name.c_str(), block)); 
             }
             logs.push_back(TextFormat("%s takes %d damage", name.c_str(), Damage));
@@ -71,7 +71,12 @@ public:
         energy = maxEnergy;
         logs.push_back(TextFormat("%s's energy reset to %d", name.c_str(), maxEnergy));
     }
-    
+    void gainEnergy(int cardEnergyGained, vector<string>& logs){
+        if (cardEnergyGained > 0){
+            energy += cardEnergyGained;
+            logs.push_back(TextFormat("%s's energy reset to %d", name.c_str(), maxEnergy));
+        }
+    }
     void useEnergy(int cardEnergyCost) {
         energy -= cardEnergyCost;
     }
@@ -98,19 +103,21 @@ struct Card {
     int damage;
     int block;
     int drawNumber;
+    int energyGained;
 };
 
-const Card CARD_DATABASE[11] = {
-    {"Strike", 1, 6, 0, 0},//0
-    {"Defend", 1, 0, 5, 0},//1
-    {"Bludgeon", 3, 30, 0, 0},//2
-    {"IronWave", 1, 5, 5, 0},//3
-    {"Ultimate Strike", 1, 12, 0, 0},//4
-    {"Ultimate Defend", 1, 0, 11, 0},//5
-    {"Dash", 2, 10, 10, 0},//6
-    {"Pommel Strike", 1, 9, 0, 1},//7
-    {"Shrug It Off", 1, 0, 8, 1},//8
-    {"Battle Trance", 0, 0, 0, 2}//9
+const Card CARD_DATABASE[15] = {
+    {"Strike", 1, 6, 0, 0, 0},//0
+    {"Defend", 1, 0, 5, 0, 0},//1
+    {"Bludgeon", 3, 32, 0, 0, 0},//2
+    {"IronWave", 1, 5, 5, 0, 0},//36
+    {"Ultimate Strike", 1, 11, 0, 0, 0},//4
+    {"Ultimate Defend", 1, 0, 11, 0, 0},//5
+    {"Dash", 2, 11, 11, 0, 0},//6
+    {"Pommel Strike", 1, 9, 0, 1, 0},//7
+    {"Shrug It Off", 1, 0, 8, 1, 0},//8
+    {"Battle Trance", 0, 0, 0, 2, 0},//9
+    {"Seeing Red", 0, 0, 0, 0, 2}//10
 };
 
 void shuffleDeck(vector<string>& logs, vector<int>& discardPile, vector<int>& drawPile) {
@@ -215,9 +222,9 @@ int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, i
         // Draw energy
         float energyCircleX = posX + 10;
         float energyCircleY = currentCardY; 
-        DrawCircle(energyCircleX, energyCircleY, 18, ORANGE); 
-        DrawCircleLines(energyCircleX, energyCircleY, 18, WHITE);
-        DrawTextEx(font, TextFormat("%d", currentCard.cost), Vector2{energyCircleX - 8, energyCircleY - 14}, 30, 1, WHITE); 
+        DrawCircle(energyCircleX, energyCircleY, 16, ORANGE); 
+        DrawCircleLines(energyCircleX, energyCircleY, 16, WHITE);
+        DrawTextEx(font, TextFormat("%d", currentCard.cost), Vector2{energyCircleX - 6, energyCircleY - 11}, 24, 1, WHITE); 
 
         float textAlignX = posX + 15;
         string cardName = currentCard.name;
@@ -225,38 +232,61 @@ int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, i
         if (splitPos != -1) {
             string firstLine = cardName.substr(0, splitPos);
             string secondLine = cardName.substr(splitPos + 1);
-            DrawTextEx(font, firstLine.c_str(), Vector2{textAlignX, currentCardY + 24}, 24, 1, WHITE);
-            DrawTextEx(font, secondLine.c_str(), Vector2{textAlignX, currentCardY + 48}, 24, 1, WHITE);
+            DrawTextEx(font, firstLine.c_str(), Vector2{textAlignX, currentCardY + 24}, 20, 1, WHITE); 
+            DrawTextEx(font, secondLine.c_str(), Vector2{textAlignX, currentCardY + 44}, 20, 1, WHITE); 
         }
         else {
-            DrawTextEx(font, cardName.c_str(), Vector2{textAlignX, currentCardY + 24}, 24, 1, WHITE);
+            DrawTextEx(font, cardName.c_str(), Vector2{textAlignX, currentCardY + 24}, 20, 1, WHITE); 
         }
 
         // Draw ATK 
         if (currentCard.damage > 0) {
-            DrawTextEx(font, TextFormat("ATK: %d", currentCard.damage), Vector2{textAlignX, currentCardY + 77}, 24, 1, RED);
+            DrawTextEx(font, TextFormat("ATK: %d", currentCard.damage), Vector2{textAlignX, currentCardY + 77}, 20, 1, RED); 
         }
 
         // Draw DEF
         if (currentCard.block > 0) {
-            float blockYOffset = (currentCard.damage > 0) ? (currentCardY + 101.0f) : (currentCardY + 77.0f);
-            DrawTextEx(font, TextFormat("DEF: %d", currentCard.block), Vector2{textAlignX, blockYOffset}, 24, 1, BLUE);
+            float blockYOffset;
+            if (currentCard.damage > 0)
+            {
+                blockYOffset = currentCardY + 97.0f;
+            }
+            else
+            {
+                blockYOffset = currentCardY + 77.0f;
+            }
+            DrawTextEx(font, TextFormat("DEF: %d", currentCard.block), Vector2{textAlignX, blockYOffset}, 20, 1, BLUE); 
         }
         
         // Draw DRAW 
         if (currentCard.drawNumber > 0) {
             float drawYOffset = currentCardY + 77.0f;
             if (currentCard.damage > 0) {
-                drawYOffset += 24.0f;
+                drawYOffset += 20.0f; 
             }
             if (currentCard.block > 0){
-                drawYOffset += 24.0f;
+                drawYOffset += 20.0f; 
             }
-            DrawTextEx(font, TextFormat("DRAW: %d", currentCard.drawNumber), Vector2{textAlignX, drawYOffset}, 24, 1, GOLD);
+            DrawTextEx(font, TextFormat("DRAW: %d", currentCard.drawNumber), Vector2{textAlignX, drawYOffset}, 20, 1, GOLD);
+        }
+
+        // Draw NRG
+        if (currentCard.energyGained > 0) {
+            float energyGainedYOffset = currentCardY + 77.0f;
+            if (currentCard.damage > 0) {
+                energyGainedYOffset += 20.0f; 
+            }
+            if (currentCard.block > 0) {
+                energyGainedYOffset += 20.0f; 
+            }
+            if (currentCard.drawNumber > 0) {
+                energyGainedYOffset += 20.0f; 
+            }
+            DrawTextEx(font, TextFormat("NRG: +%d", currentCard.energyGained), Vector2{textAlignX, energyGainedYOffset}, 20, 1, ORANGE); 
         }
 
         // Draw Card Index 
-        DrawTextEx(font, TextFormat("#%d", i + 1), Vector2{posX + cardWidth - 32, currentCardY + cardHeight - 22}, 16, 1, WHITE);
+        DrawTextEx(font, TextFormat("#%d", i + 1), Vector2{posX + cardWidth - 32, currentCardY + cardHeight - 20}, 14, 1, WHITE); 
     }
     return clickedIndex;
 }
@@ -385,21 +415,22 @@ int main(){
     //InitDeck Info
     /*
     const Card CARD_DATABASE[7] = {
-        {"Strike", 1, 6, 0, 0},//0
-        {"Defend", 1, 0, 5, 0},//1
-        {"Bludgeon", 3, 30, 0, 0},//2
-        {"IronWave", 1, 5, 5, 0},//3
-        {"Ultimate Strike", 1, 12, 0, 0},//4
-        {"Ultimate Defend", 1, 0, 11, 0},//5
-        {"Dash", 2, 10, 10, 0},//6
-        {"Pommel Strike", 1, 9, 0, 1},//7
-        {"Shrug It Off", 1, 0, 8, 1},//8
-        {"Battle Trance", 0, 0, 0, 2}//9
-    };
+        {"Strike", 1, 6, 0, 0, 0},//0
+        {"Defend", 1, 0, 5, 0, 0},//1
+        {"Bludgeon", 3, 30, 0, 0, 0},//2
+        {"IronWave", 1, 5, 5, 0, 0},//3
+        {"Ultimate Strike", 1, 12, 0, 0, 0},//4
+        {"Ultimate Defend", 1, 0, 11, 0, 0},//5
+        {"Dash", 2, 10, 10, 0, 0},//6
+        {"Pommel Strike", 1, 9, 0, 1, 0},//7
+        {"Shrug It Off", 1, 0, 8, 1, 0},//8
+        {"Battle Trance", 0, 0, 0, 2, 0},//9
+        {"Seeing Red", 0, 0, 0, 0, 3}//10
+        };
     */
 
     // Init Piles
-    vector<int> drawPile = {0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    vector<int> drawPile = {0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     vector<int> hand = { };
     vector<int> discardPile = { };
 
@@ -494,6 +525,7 @@ int main(){
                     if (p.getEnergy() >= currentCard.cost) {
                         combatLogs.push_back(TextFormat("Played %s", currentCard.name.c_str()));
                         p.useEnergy(currentCard.cost);
+                        
                         if (currentCard.damage > 0){
                             totalQuestions++;
                             turnBaseDamage += currentCard.damage; 
@@ -503,6 +535,9 @@ int main(){
                         }          
                         if(currentCard.drawNumber > 0){
                             drawCards(combatLogs, drawPile, hand, discardPile, currentCard.drawNumber);
+                        }
+                        if(currentCard.energyGained > 0){
+                            p.gainEnergy(currentCard.energyGained, combatLogs);
                         }
                         // Move the card into discardPile              
                         discardPile.push_back(cardID);
