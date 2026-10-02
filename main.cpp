@@ -204,15 +204,16 @@ int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, i
 
         Color baseColor = Color{ 30, 30, 40, 255 };
         Color borderColor = GRAY;
+
+        // Change border color
+        if (playerEnergy < currentCard.cost) {
+            borderColor = RED;
+        } 
+        else if (isHovered || i == selectedCardIdx) {
+            borderColor = GOLD;
+        }
         if (isHovered || i == selectedCardIdx) {
             baseColor = Color{ 50, 50, 70, 255 };
-            // Change border color
-            if (playerEnergy >= currentCard.cost) {
-                borderColor = GOLD;
-            } 
-            else {
-                borderColor = RED; 
-            }
         }
 
         // Draw Cards and border
