@@ -7,6 +7,7 @@ using namespace std;
 enum GameState {
     STATE_MENU,
     STATE_PLAYER_TURN,
+    STATE_VIEW_PILE,
     STATE_MATH_QUIZ,
     STATE_ENEMY_TURN,
     STATE_GAME_OVER
@@ -106,7 +107,7 @@ struct Card {
     int energyGained;
 };
 
-const Card CARD_DATABASE[15] = {
+const Card CARD_DATABASE[] = {
     {"Strike", 1, 6, 0, 0, 0},//0
     {"Defend", 1, 0, 5, 0, 0},//1
     {"Bludgeon", 3, 32, 0, 0, 0},//2
@@ -323,11 +324,23 @@ struct QuizButton {
         isHovered = CheckCollisionPointRec(mousePos, rect);
     }
 
-    // Draws the button box, border, and handles hover colors
+    // Draws the button box, border, hover colors
     void draw(int fontSize, Font font) {
-        Color boxColor = isHovered ? Color{ 60, 60, 60, 255 } : Color{ 30, 30, 30, 255 };
-        Color borderColor = isHovered ? GOLD : GRAY;
-        Color textColor = isHovered ? GOLD : WHITE;
+        Color boxColor;
+        Color borderColor;
+        Color textColor;
+
+        if (isHovered) {
+            boxColor = Color{ 45, 60, 85, 255 };
+            borderColor = GOLD;
+            textColor = GOLD;
+        }
+        else {
+            boxColor = Color{ 20, 25, 35, 255 };
+            borderColor = Color{ 80, 90, 105, 255 };
+            textColor = WHITE;
+        }
+
         DrawRectangleRec(rect, boxColor);
         DrawRectangleLinesEx(rect, 2, borderColor); 
         DrawTextEx(font, text.c_str(), Vector2{rect.x + 15, rect.y + 10}, fontSize, 1, textColor);
@@ -415,18 +428,18 @@ int main(){
     
     //InitDeck Info
     /*
-    const Card CARD_DATABASE[7] = {
+    const Card CARD_DATABASE[] = {
         {"Strike", 1, 6, 0, 0, 0},//0
         {"Defend", 1, 0, 5, 0, 0},//1
-        {"Bludgeon", 3, 30, 0, 0, 0},//2
-        {"IronWave", 1, 5, 5, 0, 0},//3
-        {"Ultimate Strike", 1, 12, 0, 0, 0},//4
+        {"Bludgeon", 3, 32, 0, 0, 0},//2
+        {"IronWave", 1, 5, 5, 0, 0},//36
+        {"Ultimate Strike", 1, 11, 0, 0, 0},//4
         {"Ultimate Defend", 1, 0, 11, 0, 0},//5
-        {"Dash", 2, 10, 10, 0, 0},//6
+        {"Dash", 2, 11, 11, 0, 0},//6
         {"Pommel Strike", 1, 9, 0, 1, 0},//7
         {"Shrug It Off", 1, 0, 8, 1, 0},//8
         {"Battle Trance", 0, 0, 0, 2, 0},//9
-        {"Seeing Red", 0, 0, 0, 0, 3}//10
+        {"Seeing Red", 0, 0, 0, 0, 2}//10
         };
     */
 
@@ -467,6 +480,8 @@ int main(){
     // Init buttons
     Rectangle endTurnBtn = { 1100, 410, 150, 50 };
     Rectangle skipBtn = { 320, 600, 150, 40 };
+    Rectangle viewDrawPileBtn = { 15, 560, 75, 85};
+    //Rectangle viewDiscardPileBtn = { 1165, 560, 100, 35 }; 
     QuizButton quizButtons[4];
     quizButtons[0].init('A');
     quizButtons[1].init('B');
@@ -475,7 +490,7 @@ int main(){
     
      // Init decks
     shuffleDeck(combatLogs, discardPile, drawPile);
-    drawCards(combatLogs, drawPile, hand, discardPile, 5);
+    drawCards(combatLogs, drawPile, hand, discardPile, 8);
 
     // Main Game Loop
     while (!WindowShouldClose()) {
@@ -610,11 +625,6 @@ int main(){
                 quizButtons[2].update(mousePos, currentQuiz.optC, startX, startY + (2 * rowSpacing), fontSize, customFont);
                 quizButtons[3].update(mousePos, currentQuiz.optD, startX, startY + (3 * rowSpacing), fontSize, customFont);
 
-                // Acculmulating timer
-                 if (quizTimer <= 6.0f) {
-                    quizTimer += GetFrameTime();
-                }
-
                 char playerChoice = '\0';
                 if (IsKeyPressed(KEY_A)) playerChoice = 'A';
                 if (IsKeyPressed(KEY_B)) playerChoice = 'B';
@@ -679,6 +689,11 @@ int main(){
                             combatLogs.push_back("--- Enemy's Turn ---");
                         }
                     }
+                }
+
+                // Acculmulating timer
+                if (quizTimer <= 6.0f &&  !needNewQuestion) {
+                    quizTimer += GetFrameTime();
                 }
                 break;
             }
@@ -749,7 +764,7 @@ int main(){
 
             Color energyBg = Color{ 210, 95, 30, 255 }; 
             DrawRectangleRounded(energyRect, 1.0f, 4, energyBg);
-            DrawRectangleRoundedLines(energyRect, 1.0f, 4, GOLD); 
+            DrawRectangleRoundedLinesEx(energyRect, 1.0f, 4, 2.0f, GOLD); 
 
             string energyText = TextFormat("%d/%d", p.getEnergy(), p.getMaxEnergy());
             float energyFontSize = 22.0f; 
@@ -764,6 +779,34 @@ int main(){
 
             // Draw deck
             drawDeck(hand, 530, customFont, p.getEnergy(), playerSelectedCard, false);
+
+            // View Draw Pile deck Button
+            bool isDrawHovered = CheckCollisionPointRec(GetMousePosition(), viewDrawPileBtn);
+            Color drawBtnColor;
+            Color drawBorderColor;
+
+            if (isDrawHovered) {
+                drawBtnColor = Color{ 60, 80, 115, 255 }; 
+                drawBorderColor = GOLD;
+            } 
+            else {
+                drawBtnColor = Color{ 35, 45, 60, 255 }; 
+                drawBorderColor = Color{ 110, 125, 145, 255 }; 
+            }
+
+            DrawRectangleRec(viewDrawPileBtn, drawBtnColor);
+            DrawRectangleLinesEx(viewDrawPileBtn, 1, drawBorderColor);
+
+            DrawTextEx(customFont, "View", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 10 }, 17, 1, WHITE);
+            DrawTextEx(customFont, "Draw", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 32 }, 17, 1, WHITE);
+            DrawTextEx(customFont, "Pile", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 54 }, 17, 1, WHITE);
+
+            if (isDrawHovered) {
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    lastState = STATE_PLAYER_TURN;
+                    currentState = STATE_VIEW_PILE; 
+                }
+            }
 
             // End Turn Button 
             if (!CheckCollisionPointRec(GetMousePosition(), endTurnBtn)){
