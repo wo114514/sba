@@ -174,45 +174,50 @@ void discardHand(vector<int>& hand, vector<int>& discardPile){
 
 int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, int selectedCardIdx, bool isUpdate) {
     if (deck.empty()) {
-        int textWidth = MeasureTextEx(font, "Your hand is empty!", 24, 1).x;
-        DrawTextEx(font, "Your hand is empty!", Vector2{(1280.0f - textWidth) / 2.0f, (float)startY + 50}, 24, 1, DARKGRAY);
-        return -1; 
+        int textWidth = MeasureTextEx(font, "Your hand is empty!", 26, 1).x;
+        DrawTextEx(font, "Your hand is empty!", Vector2{(1280.0f - textWidth) / 2.0f, (float)startY + 50}, 26, 1, DARKGRAY);
+        return -1;
     }
-    const float cardWidth = 140.0f;  
-    const float cardHeight = 180.0f; 
-    const float cardSpacing = 16.0f; 
+
+    const float cardWidth = 140.0f;
+    const float cardHeight = 180.0f;
+    const float cardSpacing = 16.0f;
+
     int numCards = deck.size();
     float totalDeckWidth = (numCards * cardWidth) + ((numCards - 1) * cardSpacing);
     float startX = (1280.0f - totalDeckWidth) / 2.0f;
 
     int clickedIndex = -1;
+
     for (int i = 0; i < numCards; i++) {
         int cardID = deck[i];
         Card currentCard = CARD_DATABASE[cardID];
+
         float posX = startX + i * (cardWidth + cardSpacing);
         float currentCardY = (float)startY;
-        
+
         Rectangle baseCheckRect = { posX, (float)startY, cardWidth, cardHeight };
         bool isHovered = CheckCollisionPointRec(GetMousePosition(), baseCheckRect);
+
         if (i == selectedCardIdx || isHovered) {
             currentCardY = (float)startY - 40.0f;
         }
-        
+
         Rectangle cardRect = { posX, currentCardY, cardWidth, cardHeight };
+
         if (isUpdate && isHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            clickedIndex = i; 
+            clickedIndex = i;
         }
 
         Color baseColor = Color{ 30, 30, 40, 255 };
-        Color borderColor = GRAY;
+        Color borderColor = GRAY; // Change border color
 
-        // Change border color
         if (playerEnergy < currentCard.cost) {
             borderColor = RED;
-        } 
-        else if (isHovered || i == selectedCardIdx) {
+        } else if (isHovered || i == selectedCardIdx) {
             borderColor = GOLD;
         }
+
         if (isHovered || i == selectedCardIdx) {
             baseColor = Color{ 50, 50, 70, 255 };
         }
@@ -223,73 +228,61 @@ int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, i
 
         // Draw energy
         float energyCircleX = posX + 10;
-        float energyCircleY = currentCardY; 
-        DrawCircle(energyCircleX, energyCircleY, 16, ORANGE); 
+        float energyCircleY = currentCardY;
+        DrawCircle(energyCircleX, energyCircleY, 16, ORANGE);
         DrawCircleLines(energyCircleX, energyCircleY, 16, WHITE);
-        DrawTextEx(font, TextFormat("%d", currentCard.cost), Vector2{energyCircleX - 6, energyCircleY - 11}, 24, 1, WHITE); 
+        DrawTextEx(font, TextFormat("%d", currentCard.cost), Vector2{energyCircleX - 7, energyCircleY - 12}, 26, 1, WHITE);
 
         float textAlignX = posX + 15;
         string cardName = currentCard.name;
-        int splitPos = (int)cardName.find_first_of("- "); 
+        int splitPos = (int)cardName.find_first_of("- ");
+
         if (splitPos != -1) {
             string firstLine = cardName.substr(0, splitPos);
             string secondLine = cardName.substr(splitPos + 1);
-            DrawTextEx(font, firstLine.c_str(), Vector2{textAlignX, currentCardY + 24}, 20, 1, WHITE); 
-            DrawTextEx(font, secondLine.c_str(), Vector2{textAlignX, currentCardY + 44}, 20, 1, WHITE); 
-        }
-        else {
-            DrawTextEx(font, cardName.c_str(), Vector2{textAlignX, currentCardY + 24}, 20, 1, WHITE); 
+            DrawTextEx(font, firstLine.c_str(), Vector2{textAlignX, currentCardY + 24}, 22, 1, WHITE);
+            DrawTextEx(font, secondLine.c_str(), Vector2{textAlignX, currentCardY + 46}, 22, 1, WHITE);
+        } else {
+            DrawTextEx(font, cardName.c_str(), Vector2{textAlignX, currentCardY + 24}, 22, 1, WHITE);
         }
 
-        // Draw ATK 
+        // Draw ATK
         if (currentCard.damage > 0) {
-            DrawTextEx(font, TextFormat("ATK: %d", currentCard.damage), Vector2{textAlignX, currentCardY + 77}, 20, 1, RED); 
+            DrawTextEx(font, TextFormat("ATK: %d", currentCard.damage), Vector2{textAlignX, currentCardY + 77}, 22, 1, RED);
         }
 
         // Draw DEF
         if (currentCard.block > 0) {
             float blockYOffset;
-            if (currentCard.damage > 0)
-            {
-                blockYOffset = currentCardY + 97.0f;
-            }
-            else
-            {
+            if (currentCard.damage > 0) {
+                blockYOffset = currentCardY + 99.0f;
+            } else {
                 blockYOffset = currentCardY + 77.0f;
             }
-            DrawTextEx(font, TextFormat("DEF: %d", currentCard.block), Vector2{textAlignX, blockYOffset}, 20, 1, BLUE); 
+            DrawTextEx(font, TextFormat("DEF: %d", currentCard.block), Vector2{textAlignX, blockYOffset}, 22, 1, BLUE);
         }
-        
-        // Draw DRAW 
+
+        // Draw DRAW
         if (currentCard.drawNumber > 0) {
             float drawYOffset = currentCardY + 77.0f;
-            if (currentCard.damage > 0) {
-                drawYOffset += 20.0f; 
-            }
-            if (currentCard.block > 0){
-                drawYOffset += 20.0f; 
-            }
-            DrawTextEx(font, TextFormat("DRAW: %d", currentCard.drawNumber), Vector2{textAlignX, drawYOffset}, 20, 1, GOLD);
+            if (currentCard.damage > 0) { drawYOffset += 22.0f; }
+            if (currentCard.block > 0)  { drawYOffset += 22.0f; }
+            DrawTextEx(font, TextFormat("DRAW: %d", currentCard.drawNumber), Vector2{textAlignX, drawYOffset}, 22, 1, GOLD);
         }
 
         // Draw NRG
         if (currentCard.energyGained > 0) {
             float energyGainedYOffset = currentCardY + 77.0f;
-            if (currentCard.damage > 0) {
-                energyGainedYOffset += 20.0f; 
-            }
-            if (currentCard.block > 0) {
-                energyGainedYOffset += 20.0f; 
-            }
-            if (currentCard.drawNumber > 0) {
-                energyGainedYOffset += 20.0f; 
-            }
-            DrawTextEx(font, TextFormat("NRG: +%d", currentCard.energyGained), Vector2{textAlignX, energyGainedYOffset}, 20, 1, ORANGE); 
+            if (currentCard.damage > 0)     { energyGainedYOffset += 22.0f; }
+            if (currentCard.block > 0)      { energyGainedYOffset += 22.0f; }
+            if (currentCard.drawNumber > 0) { energyGainedYOffset += 22.0f; }
+            DrawTextEx(font, TextFormat("NRG: +%d", currentCard.energyGained), Vector2{textAlignX, energyGainedYOffset}, 22, 1, ORANGE);
         }
 
-        // Draw Card Index 
-        DrawTextEx(font, TextFormat("#%d", i + 1), Vector2{posX + cardWidth - 32, currentCardY + cardHeight - 20}, 14, 1, WHITE); 
+        // Draw Card Index
+        DrawTextEx(font, TextFormat("#%d", i + 1), Vector2{posX + cardWidth - 34, currentCardY + cardHeight - 22}, 16, 1, WHITE);
     }
+
     return clickedIndex;
 }
 
@@ -419,7 +412,10 @@ int main(){
     SetRandomSeed((unsigned int)time(NULL)); 
 
     // Init font
-    Font customFont = LoadFont("resources/font/JetBrainsMono-Regular.ttf");
+    Font Thin = LoadFont("resources/font/JetBrainsMono-Thin.ttf");
+    Font Regular = LoadFont("resources/font/JetBrainsMono-Regular.ttf");
+    Font SemiBold = LoadFont("resources/font/JetBrainsMono-SemiBold.ttf");
+    Font Bold = LoadFont("resources/font/JetBrainsMono-Bold.ttf");
 
     // Init player
     Player p ("IronClad", 80, 80, 0, 3, 3);
@@ -489,8 +485,8 @@ int main(){
     quizButtons[3].init('D');
     
      // Init decks
-    shuffleDeck(combatLogs, discardPile, drawPile);
-    drawCards(combatLogs, drawPile, hand, discardPile, 8);
+    shuffleDeck(combatLogs, discardPile, drawPile); 
+    drawCards(combatLogs, drawPile, hand, discardPile, 5);
 
     // Main Game Loop
     while (!WindowShouldClose()) {
@@ -512,7 +508,7 @@ int main(){
                 }
 
                 // Get click index
-                int frameClickedIdx = drawDeck(hand, 530, customFont, p.getEnergy(), playerSelectedCard, true);
+                int frameClickedIdx = drawDeck(hand, 530, Regular, p.getEnergy(), playerSelectedCard, true);
                 
                 // Mouse input
                 if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
@@ -610,7 +606,7 @@ int main(){
 
                 // Atuomatic to new line
                 string questionFullText = TextFormat("Question: %s", currentQuiz.title.c_str());
-                Vector2 questionSize = MeasureTextEx(customFont, questionFullText.c_str(), 26, 1);
+                Vector2 questionSize = MeasureTextEx(Regular, questionFullText.c_str(), 26, 1);
 
                 // Dynammic change the question layout
                 float startX = 320.0f;
@@ -620,10 +616,10 @@ int main(){
                 float rowSpacing = 48.0f; 
 
                 // Update quiz buttons 
-                quizButtons[0].update(mousePos, currentQuiz.optA, startX, startY + (0 * rowSpacing), fontSize, customFont);
-                quizButtons[1].update(mousePos, currentQuiz.optB, startX, startY + (1 * rowSpacing), fontSize, customFont);
-                quizButtons[2].update(mousePos, currentQuiz.optC, startX, startY + (2 * rowSpacing), fontSize, customFont);
-                quizButtons[3].update(mousePos, currentQuiz.optD, startX, startY + (3 * rowSpacing), fontSize, customFont);
+                quizButtons[0].update(mousePos, currentQuiz.optA, startX, startY + (0 * rowSpacing), fontSize, Regular);
+                quizButtons[1].update(mousePos, currentQuiz.optB, startX, startY + (1 * rowSpacing), fontSize, Regular);
+                quizButtons[2].update(mousePos, currentQuiz.optC, startX, startY + (2 * rowSpacing), fontSize, Regular);
+                quizButtons[3].update(mousePos, currentQuiz.optD, startX, startY + (3 * rowSpacing), fontSize, Regular);
 
                 char playerChoice = '\0';
                 if (IsKeyPressed(KEY_A)) playerChoice = 'A';
@@ -739,21 +735,21 @@ int main(){
         }
 
         // Display player info
-        DrawTextEx(customFont, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 40}, 24, 1, BLUE);
-        DrawTextEx(customFont, TextFormat("Player Damage: %d", turnBaseDamage), Vector2{50, 70}, 24, 1, BLUE);
-        DrawTextEx(customFont, TextFormat("Player Questions: %d", totalQuestions), Vector2{50, 100}, 24, 1, BLUE);
-        DrawTextEx(customFont, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
+        DrawTextEx(Regular, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 40}, 24, 1, BLUE);
+        DrawTextEx(Regular, TextFormat("Player Damage: %d", turnBaseDamage), Vector2{50, 70}, 24, 1, BLUE);
+        DrawTextEx(Regular, TextFormat("Player Questions: %d", totalQuestions), Vector2{50, 100}, 24, 1, BLUE);
+        DrawTextEx(Regular, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
 
         // Display enemy info
-        DrawTextEx(customFont, TextFormat("%s HP: %d / %d", e.getName().c_str(), e.getHp(), e.getMaxHp()), Vector2{900, 40}, 24, 1, RED);
-        DrawTextEx(customFont, TextFormat("%s ATK: %d", e.getName().c_str(), e.getAtk()), Vector2{900, 70}, 24, 1, RED);
-        DrawTextEx(customFont, TextFormat("%s Intent: %s", e.getName().c_str(), enemyIntent.c_str()), Vector2{900, 100}, 24, 1, RED);
-        DrawTextEx(customFont, TextFormat("%s BLOCK: %d", e.getName().c_str(), e.getBlock()), Vector2{900, 130}, 24, 1, RED);
+        DrawTextEx(Regular, TextFormat("%s HP: %d / %d", e.getName().c_str(), e.getHp(), e.getMaxHp()), Vector2{900, 40}, 24, 1, RED);
+        DrawTextEx(Regular, TextFormat("%s ATK: %d", e.getName().c_str(), e.getAtk()), Vector2{900, 70}, 24, 1, RED);
+        DrawTextEx(Regular, TextFormat("%s Intent: %s", e.getName().c_str(), enemyIntent.c_str()), Vector2{900, 100}, 24, 1, RED);
+        DrawTextEx(Regular, TextFormat("%s BLOCK: %d", e.getName().c_str(), e.getBlock()), Vector2{900, 130}, 24, 1, RED);
 
         // Display different text based on game state
         if (currentState == STATE_PLAYER_TURN) {
-            DrawTextEx(customFont, "Current State: [ PLAYER TURN ]", Vector2{320, 240}, 32, 1, GOLD);
-            DrawTextEx(customFont, "Press [ SPACE ] or click the button to end your turn", Vector2{320, 280}, 26, 1, GRAY);
+            DrawTextEx(Regular, "Current State: [ PLAYER TURN ]", Vector2{320, 240}, 32, 1, GOLD);
+            DrawTextEx(Regular, "Press [ SPACE ] or click the button to end your turn", Vector2{320, 280}, 26, 1, GRAY);
 
             float capsuleWidth = 68.0f;
             float capsuleHeight = 36.0f; 
@@ -768,17 +764,17 @@ int main(){
 
             string energyText = TextFormat("%d/%d", p.getEnergy(), p.getMaxEnergy());
             float energyFontSize = 22.0f; 
-            Vector2 textSize = MeasureTextEx(customFont, energyText.c_str(), energyFontSize, 1);
+            Vector2 textSize = MeasureTextEx(Regular, energyText.c_str(), energyFontSize, 1);
             
             // Center text inside the narrow capsule
             Vector2 textPos = {
                 energyX + (capsuleWidth - textSize.x) / 2.0f,
                 energyY + (capsuleHeight - textSize.y) / 2.0f
             };
-            DrawTextEx(customFont, energyText.c_str(), textPos, energyFontSize, 1, WHITE);
+            DrawTextEx(Regular, energyText.c_str(), textPos, energyFontSize, 1, WHITE);
 
             // Draw deck
-            drawDeck(hand, 530, customFont, p.getEnergy(), playerSelectedCard, false);
+            drawDeck(hand, 530, Bold, p.getEnergy(), playerSelectedCard, false);
 
             // View Draw Pile deck Button
             bool isDrawHovered = CheckCollisionPointRec(GetMousePosition(), viewDrawPileBtn);
@@ -797,9 +793,9 @@ int main(){
             DrawRectangleRec(viewDrawPileBtn, drawBtnColor);
             DrawRectangleLinesEx(viewDrawPileBtn, 1, drawBorderColor);
 
-            DrawTextEx(customFont, "View", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 10 }, 20, 1, WHITE);
-            DrawTextEx(customFont, "Draw", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 32 }, 20, 1, WHITE);
-            DrawTextEx(customFont, "Pile", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 54 }, 20, 1, WHITE);
+            DrawTextEx(Regular, "View", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 10 }, 20, 1, WHITE);
+            DrawTextEx(Regular, "Draw", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 32 }, 20, 1, WHITE);
+            DrawTextEx(Regular, "Pile", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 54 }, 20, 1, WHITE);
 
             if (isDrawHovered) {
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -815,24 +811,24 @@ int main(){
             else{
                 DrawRectangleRec(endTurnBtn, Color{ 0, 185, 0, 255 });
             }
-            DrawTextEx(customFont, TextFormat("End Turn %d", combatTurn), Vector2{endTurnBtn.x + 18, endTurnBtn.y + 15}, 20, 1, BLACK); 
+            DrawTextEx(Regular, TextFormat("End Turn %d", combatTurn), Vector2{endTurnBtn.x + 18, endTurnBtn.y + 15}, 20, 1, BLACK); 
         } 
         else if (currentState == STATE_MATH_QUIZ) {
-            DrawTextEx(customFont, "Current State: [ MATH QUIZ ]", Vector2{320,  240}, 32, 1, PURPLE);
+            DrawTextEx(Regular, "Current State: [ MATH QUIZ ]", Vector2{320,  240}, 32, 1, PURPLE);
                   
             // Print questions 
             string questionFullText = TextFormat("Question: %s", currentQuiz.title.c_str());
-            DrawTextEx(customFont, questionFullText.c_str(), Vector2{320, 280}, 26, 1, WHITE);      
+            DrawTextEx(Regular, questionFullText.c_str(), Vector2{320, 280}, 26, 1, WHITE);      
 
             // Output calculations according to its length
-            Vector2 questionSize = MeasureTextEx(customFont, questionFullText.c_str(), 26, 1);
+            Vector2 questionSize = MeasureTextEx(Regular, questionFullText.c_str(), 26, 1);
             float startX = 320.0f;
             float startY = 280.0f + questionSize.y + 20.0f; 
             float rowSpacing = 48.0f;
 
             for (int i = 0; i < 4; i++) {
                 // Draw Quiz Buttons vertically aligned
-                quizButtons[i].draw(22, customFont);
+                quizButtons[i].draw(22, Regular);
             }
 
             float timeBarY = startY + (4 * rowSpacing) + 5.0f; 
@@ -879,12 +875,12 @@ int main(){
             
             // Times up logic and drawing 
             if (quizTimer > 6.0f) {
-                DrawTextEx(customFont, "Continue", Vector2{skipBtn.x + 30, skipBtn.y + 10}, 20, 1, YELLOW);
-                DrawTextEx(customFont, "TIME'S UP! Press Space or Click Continue.", Vector2{490, skipBtn.y + 10}, 18, 1, RED);
+                DrawTextEx(Regular, "Continue", Vector2{skipBtn.x + 30, skipBtn.y + 10}, 20, 1, YELLOW);
+                DrawTextEx(Regular, "TIME'S UP! Press Space or Click Continue.", Vector2{490, skipBtn.y + 10}, 18, 1, RED);
             } 
             else { 
-                DrawTextEx(customFont, "Skip", Vector2{skipBtn.x + 55, skipBtn.y + 10}, 20, 1, WHITE);
-                DrawTextEx(customFont, TextFormat("Time Left: %.1fs", 6.0f - quizTimer), Vector2{490, skipBtn.y + 10}, 20, 1, ORANGE);
+                DrawTextEx(Regular, "Skip", Vector2{skipBtn.x + 55, skipBtn.y + 10}, 20, 1, WHITE);
+                DrawTextEx(Regular, TextFormat("Time Left: %.1fs", 6.0f - quizTimer), Vector2{490, skipBtn.y + 10}, 20, 1, ORANGE);
             }
             // Draw numbers of left quizzes
             int backLogQuestions = totalQuestions;
@@ -894,34 +890,37 @@ int main(){
             else{
                 backLogQuestions = 0;
             }
-            DrawTextEx(customFont, TextFormat("Quizzes Left: %d", backLogQuestions), Vector2{320, skipBtn.y + 55.0f}, 20, 1, BEIGE);
+            DrawTextEx(Regular, TextFormat("Quizzes Left: %d", backLogQuestions), Vector2{320, skipBtn.y + 55.0f}, 20, 1, BEIGE);
         }
         else if (currentState == STATE_ENEMY_TURN) {
-            DrawTextEx(customFont, "Current State: [ ENEMY TURN ]", Vector2{320, 240}, 32, 1, RED);
+            DrawTextEx(Regular, "Current State: [ ENEMY TURN ]", Vector2{320, 240}, 32, 1, RED);
         }
         else if (currentState == STATE_GAME_OVER) {
             if (e.getHp() <= 0 ){
-                DrawTextEx(customFont, "You win!", Vector2{320, 240}, 32, 1, RED);
+                DrawTextEx(Regular, "You win!", Vector2{320, 240}, 32, 1, RED);
             }
             if (p.getHp() <= 0 ){
-                DrawTextEx(customFont, "You lose! Game Over", Vector2{320, 240}, 32, 1, RED);
+                DrawTextEx(Regular, "You lose! Game Over", Vector2{320, 240}, 32, 1, RED);
             }
         }
 
         // Draw log 
         int logY = 10;
         float fixedLogX = 520.0f;   
-        DrawTextEx(customFont, "Combat Logs:", Vector2 {520.0, 10}, 20, 1, GRAY);
+        DrawTextEx(Regular, "Combat Logs:", Vector2 {520.0, 10}, 20, 1, GRAY);
    
         int startLog = (combatLogs.size() > 6) ? combatLogs.size() - 6 : 0;
         for (int i = startLog; i < combatLogs.size(); i++) {
             logY += 25;
             // Draw each log
-            DrawTextEx(customFont, combatLogs[i].c_str(), Vector2{fixedLogX, (float)logY}, 18, 1, LIGHTGRAY);
+            DrawTextEx(Regular, combatLogs[i].c_str(), Vector2{fixedLogX, (float)logY}, 18, 1, LIGHTGRAY);
         }
         EndDrawing();
     }
     //Unload Resources
-    UnloadFont(customFont);
+    UnloadFont(Thin);
+    UnloadFont(Regular);
+    UnloadFont(SemiBold);
+    UnloadFont(Bold);
     CloseWindow();
 }
