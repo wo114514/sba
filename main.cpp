@@ -797,9 +797,9 @@ int main(){
             DrawRectangleRec(viewDrawPileBtn, drawBtnColor);
             DrawRectangleLinesEx(viewDrawPileBtn, 1, drawBorderColor);
 
-            DrawTextEx(customFont, "View", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 10 }, 17, 1, WHITE);
-            DrawTextEx(customFont, "Draw", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 32 }, 17, 1, WHITE);
-            DrawTextEx(customFont, "Pile", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 54 }, 17, 1, WHITE);
+            DrawTextEx(customFont, "View", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 10 }, 20, 1, WHITE);
+            DrawTextEx(customFont, "Draw", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 32 }, 20, 1, WHITE);
+            DrawTextEx(customFont, "Pile", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 54 }, 20, 1, WHITE);
 
             if (isDrawHovered) {
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
