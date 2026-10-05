@@ -295,6 +295,65 @@ struct QuizInfo {
     string optD;    // Stores text D
     char correctAns;
 };
+struct GameButton {
+    Rectangle rect;
+    string text1;
+    string text2;
+    string text3;
+    bool isHovered;
+
+    // Init button positions and size
+    void init(float x, float y, float width, float height, string t1, string t2 = "", string t3 = "") {
+        rect = { x, y, width, height };
+        text1 = t1;
+        text2 = t2;
+        text3 = t3;
+        isHovered = false;
+    }
+
+    // Hover detection
+    void update(Vector2 mousePos) {
+        isHovered = CheckCollisionPointRec(mousePos, rect);
+    }
+
+    // Click detection
+    bool isClicked(Vector2 mousePos) {
+        return isHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    }
+
+    // Render button and border
+    void draw(Font font, Color baseColor, Color hoverColor, Color borderColor) {
+        // Update isHovered
+        update(GetMousePosition());
+
+        Color currentBg;
+        
+        // Hover Color change
+        if (isHovered) {
+            currentBg = hoverColor;
+        } else {
+            currentBg = baseColor;
+        }
+        
+        // Draw rectangle and border lines
+        DrawRectangleRec(rect, currentBg);
+        DrawRectangleLinesEx(rect, 1, borderColor);
+
+        // Text positioning logic 
+        if (text2 == "" && text3 == "") {
+            // Centered 
+            Vector2 textSize = MeasureTextEx(font, text1.c_str(), 20, 1);
+            float tx = rect.x + (rect.width - textSize.x) / 2.0f;
+            float ty = rect.y + (rect.height - textSize.y) / 2.0f;
+            DrawTextEx(font, text1.c_str(), Vector2{tx, ty}, 20, 1, WHITE);
+        } else {
+            // Centered when more lines
+            DrawTextEx(font, text1.c_str(), Vector2{ rect.x + 18, rect.y + 10 }, 20, 1, WHITE);
+            if (text2 != "") DrawTextEx(font, text2.c_str(), Vector2{ rect.x + 18, rect.y + 32 }, 20, 1, WHITE);
+            if (text3 != "") DrawTextEx(font, text3.c_str(), Vector2{ rect.x + 18, rect.y + 54 }, 20, 1, WHITE);
+        }
+    }
+};
 
 struct QuizButton {
     Rectangle rect;
@@ -474,15 +533,23 @@ int main(){
     float enemyTurnTimer = 0.0f; 
 
     // Init buttons
-    Rectangle endTurnBtn = { 1100, 410, 150, 50 };
-    Rectangle skipBtn = { 320, 600, 150, 40 };
-    Rectangle viewDrawPileBtn = { 15, 560, 75, 85};
-    //Rectangle viewDiscardPileBtn = { 1165, 560, 100, 35 }; 
+    GameButton endTurnBtn;
+    GameButton skipBtn;
+    GameButton viewDrawPileBtn;
+    GameButton backToTurnBtn;     
+    
+    // Init button positions, size and text values
+    endTurnBtn.init(1100, 410, 150, 50, "End Turn");
+    skipBtn.init(320, 600, 150, 40, "Skip");
+    viewDrawPileBtn.init(15, 560, 75, 85, "View", "Draw", "Pile");
+    backToTurnBtn.init(15, 560, 75, 85, "Back", "To", "Turn");
+
     QuizButton quizButtons[4];
     quizButtons[0].init('A');
     quizButtons[1].init('B');
     quizButtons[2].init('C');
     quizButtons[3].init('D');
+
     
      // Init decks
     shuffleDeck(combatLogs, discardPile, drawPile); 
@@ -507,6 +574,9 @@ int main(){
                     playCardTriggered = true;
                 }
 
+                // Update Turns number
+                endTurnBtn.text1 = TextFormat("End Turn %d", combatTurn);
+
                 // Get click index
                 int frameClickedIdx = drawDeck(hand, 530, Regular, p.getEnergy(), playerSelectedCard, true);
                 
@@ -524,7 +594,7 @@ int main(){
                         }
                     } 
                     else {
-                        if (!CheckCollisionPointRec(GetMousePosition(), endTurnBtn)) {
+                        if (!endTurnBtn.isHovered && !viewDrawPileBtn.isHovered) {
                             playerSelectedCard = -1;
                         }
                     }
@@ -564,8 +634,14 @@ int main(){
                 }
 
                 // Click end turn button
-                if (CheckCollisionPointRec(GetMousePosition(), endTurnBtn) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
+                if (endTurnBtn.isClicked(GetMousePosition())) {
                     endTurnTriggered = true;
+                }
+
+                // Click view drawPile button
+                if (viewDrawPileBtn.isClicked(GetMousePosition())) {
+                    lastState = STATE_PLAYER_TURN;
+                    currentState = STATE_VIEW_PILE;
                 }
 
                 // Space
@@ -591,6 +667,16 @@ int main(){
                 }
                 break;
             }
+            case STATE_VIEW_PILE: {
+                if (IsKeyPressed(KEY_SPACE)) {
+                    currentState = lastState;
+                }
+                if (backToTurnBtn.isClicked(GetMousePosition())) {
+                    currentState = lastState;
+                }
+                break;
+            }
+
             case STATE_MATH_QUIZ:{
                 if (needNewQuestion) {
                     currentQuiz = g.generateAlgebraQuestion();
@@ -638,7 +724,7 @@ int main(){
                 } 
                 bool skipTriggered = false;
                 if (quizTimer <= 6.0f){
-                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), skipBtn) || IsKeyPressed(KEY_SPACE)) {
+                    if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && skipBtn.isHovered) || IsKeyPressed(KEY_SPACE)) {
                         skipTriggered = true;
                     }
                 }
@@ -646,9 +732,9 @@ int main(){
                 // Times up logic
                 bool continueTriggered = false;
                 if (quizTimer > 6.0f) {
-                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), skipBtn) || IsKeyPressed(KEY_SPACE)) {
-                        continueTriggered = true;
-                    }
+                    if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && skipBtn.isHovered) || IsKeyPressed(KEY_SPACE)) {
+                        skipTriggered = true;
+                    }   
                 }
 
                if (playerChoice != '\0' || skipTriggered || continueTriggered) {
@@ -735,21 +821,21 @@ int main(){
         }
 
         // Display player info
-        DrawTextEx(Regular, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 40}, 24, 1, BLUE);
-        DrawTextEx(Regular, TextFormat("Player Damage: %d", turnBaseDamage), Vector2{50, 70}, 24, 1, BLUE);
-        DrawTextEx(Regular, TextFormat("Player Questions: %d", totalQuestions), Vector2{50, 100}, 24, 1, BLUE);
-        DrawTextEx(Regular, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
+        DrawTextEx(SemiBold, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 40}, 24, 1, BLUE);
+        DrawTextEx(SemiBold, TextFormat("Player Damage: %d", turnBaseDamage), Vector2{50, 70}, 24, 1, BLUE);
+        DrawTextEx(SemiBold, TextFormat("Player Questions: %d", totalQuestions), Vector2{50, 100}, 24, 1, BLUE);
+        DrawTextEx(SemiBold, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
 
         // Display enemy info
-        DrawTextEx(Regular, TextFormat("%s HP: %d / %d", e.getName().c_str(), e.getHp(), e.getMaxHp()), Vector2{900, 40}, 24, 1, RED);
-        DrawTextEx(Regular, TextFormat("%s ATK: %d", e.getName().c_str(), e.getAtk()), Vector2{900, 70}, 24, 1, RED);
-        DrawTextEx(Regular, TextFormat("%s Intent: %s", e.getName().c_str(), enemyIntent.c_str()), Vector2{900, 100}, 24, 1, RED);
-        DrawTextEx(Regular, TextFormat("%s BLOCK: %d", e.getName().c_str(), e.getBlock()), Vector2{900, 130}, 24, 1, RED);
+        DrawTextEx(SemiBold, TextFormat("%s HP: %d / %d", e.getName().c_str(), e.getHp(), e.getMaxHp()), Vector2{900, 40}, 24, 1, RED);
+        DrawTextEx(SemiBold, TextFormat("%s ATK: %d", e.getName().c_str(), e.getAtk()), Vector2{900, 70}, 24, 1, RED);
+        DrawTextEx(SemiBold, TextFormat("%s Intent: %s", e.getName().c_str(), enemyIntent.c_str()), Vector2{900, 100}, 24, 1, RED);
+        DrawTextEx(SemiBold, TextFormat("%s BLOCK: %d", e.getName().c_str(), e.getBlock()), Vector2{900, 130}, 24, 1, RED);
 
         // Display different text based on game state
         if (currentState == STATE_PLAYER_TURN) {
-            DrawTextEx(Regular, "Current State: [ PLAYER TURN ]", Vector2{320, 240}, 32, 1, GOLD);
-            DrawTextEx(Regular, "Press [ SPACE ] or click the button to end your turn", Vector2{320, 280}, 26, 1, GRAY);
+            DrawTextEx(SemiBold, "Current State: [ PLAYER TURN ]", Vector2{320, 240}, 32, 1, GOLD);
+            DrawTextEx(SemiBold, "Press [ SPACE ] or click the button to end your turn", Vector2{320, 280}, 26, 1, GRAY);
 
             float capsuleWidth = 68.0f;
             float capsuleHeight = 36.0f; 
@@ -764,55 +850,28 @@ int main(){
 
             string energyText = TextFormat("%d/%d", p.getEnergy(), p.getMaxEnergy());
             float energyFontSize = 22.0f; 
-            Vector2 textSize = MeasureTextEx(Regular, energyText.c_str(), energyFontSize, 1);
+            Vector2 textSize = MeasureTextEx(Bold, energyText.c_str(), energyFontSize, 1);
             
             // Center text inside the narrow capsule
             Vector2 textPos = {
                 energyX + (capsuleWidth - textSize.x) / 2.0f,
                 energyY + (capsuleHeight - textSize.y) / 2.0f
             };
-            DrawTextEx(Regular, energyText.c_str(), textPos, energyFontSize, 1, WHITE);
+            DrawTextEx(Bold, energyText.c_str(), textPos, energyFontSize, 1, WHITE);
 
             // Draw deck
             drawDeck(hand, 530, Bold, p.getEnergy(), playerSelectedCard, false);
 
             // View Draw Pile deck Button
-            bool isDrawHovered = CheckCollisionPointRec(GetMousePosition(), viewDrawPileBtn);
-            Color drawBtnColor;
-            Color drawBorderColor;
-
-            if (isDrawHovered) {
-                drawBtnColor = Color{ 60, 80, 115, 255 }; 
-                drawBorderColor = GOLD;
-            } 
-            else {
-                drawBtnColor = Color{ 35, 45, 60, 255 }; 
-                drawBorderColor = Color{ 110, 125, 145, 255 }; 
-            }
-
-            DrawRectangleRec(viewDrawPileBtn, drawBtnColor);
-            DrawRectangleLinesEx(viewDrawPileBtn, 1, drawBorderColor);
-
-            DrawTextEx(Regular, "View", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 10 }, 20, 1, WHITE);
-            DrawTextEx(Regular, "Draw", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 32 }, 20, 1, WHITE);
-            DrawTextEx(Regular, "Pile", Vector2{ viewDrawPileBtn.x + 18, viewDrawPileBtn.y + 54 }, 20, 1, WHITE);
-
-            if (isDrawHovered) {
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                    lastState = STATE_PLAYER_TURN;
-                    currentState = STATE_VIEW_PILE; 
-                }
-            }
+            viewDrawPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 });
 
             // End Turn Button 
-            if (!CheckCollisionPointRec(GetMousePosition(), endTurnBtn)){
-                DrawRectangleRec(endTurnBtn, Color{ 200, 200, 200, 255 });
-            }
-            else{
-                DrawRectangleRec(endTurnBtn, Color{ 0, 185, 0, 255 });
-            }
-            DrawTextEx(Regular, TextFormat("End Turn %d", combatTurn), Vector2{endTurnBtn.x + 18, endTurnBtn.y + 15}, 20, 1, BLACK); 
+            endTurnBtn.draw(Regular, Color{ 40, 40, 45, 255 }, Color{ 0, 185, 0, 255 }, Color{ 100, 100, 105, 255 });
+
         } 
+        else if (currentState ==  STATE_VIEW_PILE) {
+            backToTurnBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 });
+        }
         else if (currentState == STATE_MATH_QUIZ) {
             DrawTextEx(Regular, "Current State: [ MATH QUIZ ]", Vector2{320,  240}, 32, 1, PURPLE);
                   
@@ -862,26 +921,27 @@ int main(){
             // Draw Time Bar
             DrawRectangle(320, timeBarY, currentBarWidth, 15, barColor);
 
-            float skipBtnY = timeBarY + 30.0f;
-            skipBtn.y = skipBtnY; 
+            float skipBtnY = timeBarY + 25.0f;
+            skipBtn.rect.y = skipBtnY; 
+
+            // Change the words of skip/continue in the button
+            if (quizTimer > 6.0f) {
+                skipBtn.text1 = "Continue";
+            } else {
+                skipBtn.text1 = "Skip";
+            }
 
             // Draw skipButton
-            if (!CheckCollisionPointRec(GetMousePosition(), skipBtn)){
-                DrawRectangleRec(skipBtn, Color{ 60, 60, 60, 255 });
-            }
-            else{
-                DrawRectangleRec(skipBtn, Color{ 185, 0, 0, 255 });
-            }
+            skipBtn.draw(Regular, Color{ 60, 60, 60, 255 }, Color{ 185, 0, 0, 255 }, WHITE);
             
             // Times up logic and drawing 
             if (quizTimer > 6.0f) {
-                DrawTextEx(Regular, "Continue", Vector2{skipBtn.x + 30, skipBtn.y + 10}, 20, 1, YELLOW);
-                DrawTextEx(Regular, "TIME'S UP! Press Space or Click Continue.", Vector2{490, skipBtn.y + 10}, 18, 1, RED);
+                DrawTextEx(SemiBold, "TIME'S UP! Press Space or Click Continue.", Vector2{490, skipBtn.rect.y + 10}, 20  , 1, RED);
             } 
             else { 
-                DrawTextEx(Regular, "Skip", Vector2{skipBtn.x + 55, skipBtn.y + 10}, 20, 1, WHITE);
-                DrawTextEx(Regular, TextFormat("Time Left: %.1fs", 6.0f - quizTimer), Vector2{490, skipBtn.y + 10}, 20, 1, ORANGE);
+                DrawTextEx(SemiBold, TextFormat("Time Left: %.1fs", 6.0f - quizTimer), Vector2{490, skipBtn.rect.y + 10}, 20, 1, ORANGE);
             }
+
             // Draw numbers of left quizzes
             int backLogQuestions = totalQuestions;
             if (totalQuestions > 0){
@@ -890,7 +950,7 @@ int main(){
             else{
                 backLogQuestions = 0;
             }
-            DrawTextEx(Regular, TextFormat("Quizzes Left: %d", backLogQuestions), Vector2{320, skipBtn.y + 55.0f}, 20, 1, BEIGE);
+            DrawTextEx(Regular, TextFormat("Quizzes Left: %d", backLogQuestions), Vector2{320, skipBtn.rect.y + 55.0f}, 20, 1, BEIGE);
         }
         else if (currentState == STATE_ENEMY_TURN) {
             DrawTextEx(Regular, "Current State: [ ENEMY TURN ]", Vector2{320, 240}, 32, 1, RED);
@@ -907,13 +967,13 @@ int main(){
         // Draw log 
         int logY = 10;
         float fixedLogX = 520.0f;   
-        DrawTextEx(Regular, "Combat Logs:", Vector2 {520.0, 10}, 20, 1, GRAY);
-   
+        DrawTextEx(Bold, "Combat Logs:", Vector2 {520.0, 10}, 20, 1, GRAY);
+        
         int startLog = (combatLogs.size() > 6) ? combatLogs.size() - 6 : 0;
         for (int i = startLog; i < combatLogs.size(); i++) {
             logY += 25;
             // Draw each log
-            DrawTextEx(Regular, combatLogs[i].c_str(), Vector2{fixedLogX, (float)logY}, 18, 1, LIGHTGRAY);
+            DrawTextEx(Bold, combatLogs[i].c_str(), Vector2{fixedLogX, (float)logY}, 20, 1, LIGHTGRAY);
         }
         EndDrawing();
     }
