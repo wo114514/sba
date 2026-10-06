@@ -295,6 +295,7 @@ struct QuizInfo {
     string optD;    // Stores text D
     char correctAns;
 };
+
 struct GameButton {
     Rectangle rect;
     string text1;
@@ -323,9 +324,7 @@ struct GameButton {
 
     // Render button and border
     void draw(Font font, Color baseColor, Color hoverColor, Color borderColor) {
-        // Update isHovered
         update(GetMousePosition());
-
         Color currentBg;
         
         // Hover Color change
@@ -538,19 +537,19 @@ int main(){
     GameButton viewDrawPileBtn;
     GameButton backToTurnBtn;     
     
-    // Init button positions, size and text values
+    // Init button data
     endTurnBtn.init(1100, 410, 150, 50, "End Turn");
     skipBtn.init(320, 600, 150, 40, "Skip");
     viewDrawPileBtn.init(15, 560, 75, 85, "View", "Draw", "Pile");
     backToTurnBtn.init(15, 560, 75, 85, "Back", "To", "Turn");
 
+    // Init Quiz buttons
     QuizButton quizButtons[4];
     quizButtons[0].init('A');
     quizButtons[1].init('B');
     quizButtons[2].init('C');
     quizButtons[3].init('D');
 
-    
      // Init decks
     shuffleDeck(combatLogs, discardPile, drawPile); 
     drawCards(combatLogs, drawPile, hand, discardPile, 5);
@@ -810,27 +809,44 @@ int main(){
         BeginDrawing();
         ClearBackground(BLACK); 
         
-        //Enemy's intent classification
-        string enemyIntent = "";
-        if (e.getBlock() > 0 && e.getAtk() > 0) {
-            enemyIntent = "Strategic Attack";
-        } else if (e.getAtk() > 0) {
-            enemyIntent = "Attack";
-        } else if (e.getBlock() > 0) {
-            enemyIntent = "Strategic";
+        // Only shown when state != viewPile
+        if (currentState != STATE_VIEW_PILE){
+            //Enemy's intent classification
+            string enemyIntent = "";
+            if (e.getBlock() > 0 && e.getAtk() > 0) {
+                enemyIntent = "Strategic Attack";
+            } 
+            else if (e.getAtk() > 0) {
+                enemyIntent = "Attack";
+            } 
+            else if (e.getBlock() > 0) {
+                enemyIntent = "Strategic";
+            }
+
+            // Display player info
+            DrawTextEx(SemiBold, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 40}, 24, 1, BLUE);
+            DrawTextEx(SemiBold, TextFormat("Player Damage: %d", turnBaseDamage), Vector2{50, 70}, 24, 1, BLUE);
+            DrawTextEx(SemiBold, TextFormat("Player Questions: %d", totalQuestions), Vector2{50, 100}, 24, 1, BLUE);
+            DrawTextEx(SemiBold, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
+
+            // Display enemy info
+            DrawTextEx(SemiBold, TextFormat("%s HP: %d / %d", e.getName().c_str(), e.getHp(), e.getMaxHp()), Vector2{900, 40}, 24, 1, RED);
+            DrawTextEx(SemiBold, TextFormat("%s ATK: %d", e.getName().c_str(), e.getAtk()), Vector2{900, 70}, 24, 1, RED);
+            DrawTextEx(SemiBold, TextFormat("%s Intent: %s", e.getName().c_str(), enemyIntent.c_str()), Vector2{900, 100}, 24, 1, RED);
+            DrawTextEx(SemiBold, TextFormat("%s BLOCK: %d", e.getName().c_str(), e.getBlock()), Vector2{900, 130}, 24, 1, RED);
+
+            // Draw log 
+            int logY = 10;
+            float fixedLogX = 520.0f;   
+            DrawTextEx(Bold, "Combat Logs:", Vector2 {520.0, 10}, 20, 1, GRAY);
+            
+            int startLog = (combatLogs.size() > 6) ? combatLogs.size() - 6 : 0;
+            for (int i = startLog; i < combatLogs.size(); i++) {
+                logY += 25;
+                // Draw each log
+                DrawTextEx(Bold, combatLogs[i].c_str(), Vector2{fixedLogX, (float)logY}, 20, 1, LIGHTGRAY);
+            }
         }
-
-        // Display player info
-        DrawTextEx(SemiBold, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 40}, 24, 1, BLUE);
-        DrawTextEx(SemiBold, TextFormat("Player Damage: %d", turnBaseDamage), Vector2{50, 70}, 24, 1, BLUE);
-        DrawTextEx(SemiBold, TextFormat("Player Questions: %d", totalQuestions), Vector2{50, 100}, 24, 1, BLUE);
-        DrawTextEx(SemiBold, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
-
-        // Display enemy info
-        DrawTextEx(SemiBold, TextFormat("%s HP: %d / %d", e.getName().c_str(), e.getHp(), e.getMaxHp()), Vector2{900, 40}, 24, 1, RED);
-        DrawTextEx(SemiBold, TextFormat("%s ATK: %d", e.getName().c_str(), e.getAtk()), Vector2{900, 70}, 24, 1, RED);
-        DrawTextEx(SemiBold, TextFormat("%s Intent: %s", e.getName().c_str(), enemyIntent.c_str()), Vector2{900, 100}, 24, 1, RED);
-        DrawTextEx(SemiBold, TextFormat("%s BLOCK: %d", e.getName().c_str(), e.getBlock()), Vector2{900, 130}, 24, 1, RED);
 
         // Display different text based on game state
         if (currentState == STATE_PLAYER_TURN) {
@@ -962,18 +978,6 @@ int main(){
             if (p.getHp() <= 0 ){
                 DrawTextEx(Regular, "You lose! Game Over", Vector2{320, 240}, 32, 1, RED);
             }
-        }
-
-        // Draw log 
-        int logY = 10;
-        float fixedLogX = 520.0f;   
-        DrawTextEx(Bold, "Combat Logs:", Vector2 {520.0, 10}, 20, 1, GRAY);
-        
-        int startLog = (combatLogs.size() > 6) ? combatLogs.size() - 6 : 0;
-        for (int i = startLog; i < combatLogs.size(); i++) {
-            logY += 25;
-            // Draw each log
-            DrawTextEx(Bold, combatLogs[i].c_str(), Vector2{fixedLogX, (float)logY}, 20, 1, LIGHTGRAY);
         }
         EndDrawing();
     }
