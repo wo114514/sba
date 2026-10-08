@@ -512,7 +512,7 @@ int main(){
     combatLogs.push_back("--- Player's Turn ---");
 
     // Init Damage
-    int turnBaseDamage = 0;
+    vector<int> turnBasedDamage;
     int turnFinalCalculatedDamage = 0; 
     float totalDamageBonus = 0;
     
@@ -561,7 +561,6 @@ int main(){
                 bool playCardTriggered = false;
                 bool endTurnTriggered = false;
                
-                //Keyboard numbers to play card
                 if ((IsKeyPressed(KEY_ONE)   || IsKeyPressed(KEY_KP_1)) && hand.size() >= 1) playerSelectedCard = 0;
                 if ((IsKeyPressed(KEY_TWO)   || IsKeyPressed(KEY_KP_2)) && hand.size() >= 2) playerSelectedCard = 1;
                 if ((IsKeyPressed(KEY_THREE) || IsKeyPressed(KEY_KP_3)) && hand.size() >= 3) playerSelectedCard = 2;
@@ -572,14 +571,8 @@ int main(){
                if ((IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) && playerSelectedCard != -1) {
                     playCardTriggered = true;
                 }
-
-                // Update Turns number
                 endTurnBtn.text1 = TextFormat("End Turn %d", combatTurn);
-
-                // Get click index
                 int frameClickedIdx = drawDeck(hand, 530, Regular, p.getEnergy(), playerSelectedCard, true);
-                
-                // Mouse input
                 if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
                     playerSelectedCard = -1;
                 }
@@ -606,10 +599,9 @@ int main(){
                     if (p.getEnergy() >= currentCard.cost) {
                         combatLogs.push_back(TextFormat("Played %s", currentCard.name.c_str()));
                         p.useEnergy(currentCard.cost);
-                        
                         if (currentCard.damage > 0){
                             totalQuestions++;
-                            turnBaseDamage += currentCard.damage; 
+                            turnBasedDamage.push_back(currentCard.damage); 
                         }
                         if (currentCard.block > 0){
                             p.addBlock(currentCard.block, combatLogs);
@@ -632,22 +624,16 @@ int main(){
                     playCardTriggered = false; 
                 }
 
-                // Click end turn button
                 if (endTurnBtn.isClicked(GetMousePosition())) {
                     endTurnTriggered = true;
                 }
-
-                // Click view drawPile button
                 if (viewDrawPileBtn.isClicked(GetMousePosition())) {
                     lastState = STATE_PLAYER_TURN;
                     currentState = STATE_VIEW_PILE;
                 }
-
-                // Space
                 if (IsKeyPressed(KEY_SPACE)) {
                     endTurnTriggered = true;
                 }
-
                 if (endTurnTriggered){
                     discardHand(hand, discardPile);
                     combatLogs.push_back(TextFormat("%s ended turn %d", p.getName().c_str(), combatTurn));
@@ -675,16 +661,13 @@ int main(){
                 }
                 break;
             }
-
             case STATE_MATH_QUIZ:{
                 if (needNewQuestion) {
                     currentQuiz = g.generateAlgebraQuestion();
                     quizTimer = 0.0f;
                     needNewQuestion = false;
                 }
-
                 Vector2 mousePos = GetMousePosition();
-
                 // Question text starts here
                 float questionX = 320.0f;
                 float questionY = 280.0f; 
@@ -696,7 +679,6 @@ int main(){
                 // Dynammic change the question layout
                 float startX = 320.0f;
                 float startY = questionY + questionSize.y + 20.0f; 
-
                 int fontSize = 22;
                 float rowSpacing = 48.0f; 
 
@@ -712,7 +694,7 @@ int main(){
                 if (IsKeyPressed(KEY_C)) playerChoice = 'C';
                 if (IsKeyPressed(KEY_D)) playerChoice = 'D';
 
-                // Skip question by players
+                // Skipped question 
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && quizTimer <= 6.0f) {
                     for (int i = 0; i < 4; i++) {
                         if (quizButtons[i].isHovered) {
@@ -728,14 +710,13 @@ int main(){
                     }
                 }
                 
-                // Times up logic
+                // Times up 
                 bool continueTriggered = false;
                 if (quizTimer > 6.0f) {
                     if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && skipBtn.isHovered) || IsKeyPressed(KEY_SPACE)) {
                         skipTriggered = true;
                     }   
                 }
-
                if (playerChoice != '\0' || skipTriggered || continueTriggered) {
                     float damageBonus = 0.0f;
                     if (skipTriggered) {
@@ -751,18 +732,18 @@ int main(){
                         combatLogs.push_back("Incorrect! Damage reduced 50%.");
                         damageBonus = 0.5f;
                     }
-
-                    float singleCardBaseDamage = (float)turnBaseDamage / initialQuestions;
-                    turnFinalCalculatedDamage += (int)(singleCardBaseDamage * damageBonus);
+                    // Accumulating damage 
+                    int currentCardId = initialQuestions - totalQuestions; 
+                    float originalCardDamage = (float)turnBasedDamage[currentCardId];
+                    turnFinalCalculatedDamage += (int)(originalCardDamage * damageBonus);
                     totalQuestions--;
+
                     if (totalQuestions > 0) {
                         needNewQuestion = true;
                     } 
                     else {
                         e.takeDamage(turnFinalCalculatedDamage, combatLogs);
-                        turnBaseDamage = 0;
-                        turnFinalCalculatedDamage = 0;
-
+                        turnBasedDamage.clear();
                         if (e.getHp() <= 0) {
                             currentState = STATE_GAME_OVER;
                         } else {
@@ -771,7 +752,6 @@ int main(){
                         }
                     }
                 }
-
                 // Acculmulating timer
                 if (quizTimer <= 6.0f &&  !needNewQuestion) {
                     quizTimer += GetFrameTime();
@@ -781,7 +761,7 @@ int main(){
             case STATE_ENEMY_TURN:{
                 if (enemyTurnTimer == 0.0f) {
                     e.attack(p, combatLogs);
-                    // End game when player is defeated
+                    // Player defeated
                     if (p.getHp() <= 0) {
                         currentState = STATE_GAME_OVER;
                         enemyTurnTimer = 0.0f;
@@ -795,6 +775,7 @@ int main(){
                     currentState = STATE_PLAYER_TURN;
                     combatLogs.push_back("--- Player's Turn ---");
                     combatTurn++;
+                    turnFinalCalculatedDamage = 0;
                     p.resetEnergy(combatLogs);
                     p.resetBlock(combatLogs);
                     drawCards(combatLogs, drawPile, hand, discardPile, 5);
@@ -823,13 +804,16 @@ int main(){
                 enemyIntent = "Strategic";
             }
 
-            // Display player info
+            //Calc for the turnBasedDamage for displaying info
+            int displayTotalDamage = 0;
+            for (int i = 0; i < turnBasedDamage.size(); i++) {
+                displayTotalDamage += turnBasedDamage[i];
+            }
+            // Display player and enemy info
             DrawTextEx(SemiBold, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 40}, 24, 1, BLUE);
-            DrawTextEx(SemiBold, TextFormat("Player Damage: %d", turnBaseDamage), Vector2{50, 70}, 24, 1, BLUE);
+            DrawTextEx(SemiBold, TextFormat("Player Damage: %d", displayTotalDamage), Vector2{50, 70}, 24, 1, BLUE);
             DrawTextEx(SemiBold, TextFormat("Player Questions: %d", totalQuestions), Vector2{50, 100}, 24, 1, BLUE);
             DrawTextEx(SemiBold, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
-
-            // Display enemy info
             DrawTextEx(SemiBold, TextFormat("%s HP: %d / %d", e.getName().c_str(), e.getHp(), e.getMaxHp()), Vector2{900, 40}, 24, 1, RED);
             DrawTextEx(SemiBold, TextFormat("%s ATK: %d", e.getName().c_str(), e.getAtk()), Vector2{900, 70}, 24, 1, RED);
             DrawTextEx(SemiBold, TextFormat("%s Intent: %s", e.getName().c_str(), enemyIntent.c_str()), Vector2{900, 100}, 24, 1, RED);
@@ -840,7 +824,13 @@ int main(){
             float fixedLogX = 520.0f;   
             DrawTextEx(Bold, "Combat Logs:", Vector2 {520.0, 10}, 20, 1, GRAY);
             
-            int startLog = (combatLogs.size() > 6) ? combatLogs.size() - 6 : 0;
+            int startLog;
+            if (combatLogs.size() > 6){
+                startLog = combatLogs.size() - 6;
+            }
+            else{
+                startLog = 0;
+            }
             for (int i = startLog; i < combatLogs.size(); i++) {
                 logY += 25;
                 // Draw each log
@@ -859,31 +849,20 @@ int main(){
             float energyY = 512.0f;     
 
             Rectangle energyRect = { energyX, energyY, capsuleWidth, capsuleHeight };
-
             Color energyBg = Color{ 210, 95, 30, 255 }; 
             DrawRectangleRounded(energyRect, 1.0f, 4, energyBg);
             DrawRectangleRoundedLinesEx(energyRect, 1.0f, 4, 2.0f, GOLD); 
-
             string energyText = TextFormat("%d/%d", p.getEnergy(), p.getMaxEnergy());
             float energyFontSize = 22.0f; 
             Vector2 textSize = MeasureTextEx(Bold, energyText.c_str(), energyFontSize, 1);
-            
-            // Center text inside the narrow capsule
             Vector2 textPos = {
                 energyX + (capsuleWidth - textSize.x) / 2.0f,
                 energyY + (capsuleHeight - textSize.y) / 2.0f
             };
             DrawTextEx(Bold, energyText.c_str(), textPos, energyFontSize, 1, WHITE);
-
-            // Draw deck
             drawDeck(hand, 530, Bold, p.getEnergy(), playerSelectedCard, false);
-
-            // View Draw Pile deck Button
             viewDrawPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 });
-
-            // End Turn Button 
             endTurnBtn.draw(Regular, Color{ 40, 40, 45, 255 }, Color{ 0, 185, 0, 255 }, Color{ 100, 100, 105, 255 });
-
         } 
         else if (currentState ==  STATE_VIEW_PILE) {
             backToTurnBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 });
@@ -894,29 +873,24 @@ int main(){
             // Print questions 
             string questionFullText = TextFormat("Question: %s", currentQuiz.title.c_str());
             DrawTextEx(Regular, questionFullText.c_str(), Vector2{320, 280}, 26, 1, WHITE);      
-
-            // Output calculations according to its length
             Vector2 questionSize = MeasureTextEx(Regular, questionFullText.c_str(), 26, 1);
             float startX = 320.0f;
             float startY = 280.0f + questionSize.y + 20.0f; 
             float rowSpacing = 48.0f;
 
             for (int i = 0; i < 4; i++) {
-                // Draw Quiz Buttons vertically aligned
                 quizButtons[i].draw(22, Regular);
             }
-
             float timeBarY = startY + (4 * rowSpacing) + 5.0f; 
             float maxBarWidth = 400.0f;
             float currentBarWidth = maxBarWidth * (1.0f - (quizTimer / 6.0f));
             if (currentBarWidth < 0) currentBarWidth = 0; 
             DrawRectangleLines(320, timeBarY, maxBarWidth, 15, GRAY);
-
-            // Color gradient calculations
             Color barColor = GREEN;
             float timeRatio = quizTimer / 6.0f;
-
-            if (timeRatio > 1.0f) timeRatio = 1.0f;
+            if (timeRatio > 1.0f){
+                timeRatio = 1.0f;
+            }
             if (quizTimer > 6.0f) {
                 barColor = RED;
             } 
@@ -937,20 +911,16 @@ int main(){
             // Draw Time Bar
             DrawRectangle(320, timeBarY, currentBarWidth, 15, barColor);
 
+            DrawTextEx(SemiBold, TextFormat("Total Damage Dealt: %d", turnFinalCalculatedDamage), Vector2{750, timeBarY - 3.0f}, 22, 1, RED);
             float skipBtnY = timeBarY + 25.0f;
             skipBtn.rect.y = skipBtnY; 
-
-            // Change the words of skip/continue in the button
             if (quizTimer > 6.0f) {
                 skipBtn.text1 = "Continue";
             } else {
                 skipBtn.text1 = "Skip";
             }
 
-            // Draw skipButton
             skipBtn.draw(Regular, Color{ 60, 60, 60, 255 }, Color{ 185, 0, 0, 255 }, WHITE);
-            
-            // Times up logic and drawing 
             if (quizTimer > 6.0f) {
                 DrawTextEx(SemiBold, "TIME'S UP! Press Space or Click Continue.", Vector2{490, skipBtn.rect.y + 10}, 20  , 1, RED);
             } 
@@ -958,15 +928,14 @@ int main(){
                 DrawTextEx(SemiBold, TextFormat("Time Left: %.1fs", 6.0f - quizTimer), Vector2{490, skipBtn.rect.y + 10}, 20, 1, ORANGE);
             }
 
-            // Draw numbers of left quizzes
             int backLogQuestions = totalQuestions;
             if (totalQuestions > 0){
-                backLogQuestions = totalQuestions - 1;
+                backLogQuestions = totalQuestions - 1;  
             }
             else{
                 backLogQuestions = 0;
             }
-            DrawTextEx(Regular, TextFormat("Quizzes Left: %d", backLogQuestions), Vector2{320, skipBtn.rect.y + 55.0f}, 20, 1, BEIGE);
+            DrawTextEx(SemiBold, TextFormat("Quizzes Left: %d", backLogQuestions), Vector2{320, skipBtn.rect.y + 55.0f}, 22, 1, BEIGE);
         }
         else if (currentState == STATE_ENEMY_TURN) {
             DrawTextEx(Regular, "Current State: [ ENEMY TURN ]", Vector2{320, 240}, 32, 1, RED);
