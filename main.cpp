@@ -1,7 +1,6 @@
 #include "raylib.h"
 #include <iostream>
 #include <vector>
-#include <time.h> 
 using namespace std;
 
 enum GameState {
@@ -21,11 +20,20 @@ protected:
     int block;
     
 public:
-    Character(string charName, int initialHp, int charMaxHp, int initBlock) : name(charName), hp(initialHp), maxHp(charMaxHp), block(initBlock) {}
-    string getName() const { return name; }
-    int getHp() const { return hp; }
-    int getMaxHp() const { return maxHp; }
-    int getBlock() const { return block; }
+    Character(string charName, int initialHp, int charMaxHp, int initBlock)
+    : name(charName), hp(initialHp), maxHp(charMaxHp), block(initBlock) {}
+    string getName() const {
+        return name; 
+    }
+    int getHp() const {
+         return hp; 
+    }
+    int getMaxHp() const {
+        return maxHp; 
+    }
+    int getBlock() const {
+         return block; 
+    }
 
     void addBlock(int blockValue, vector<string>& logs){
         logs.push_back(TextFormat("%s gained %d block", name.c_str(), blockValue));
@@ -50,9 +58,8 @@ public:
             hp = 0;
         }
     }
-    void resetBlock(vector<string>& logs) {
+    void resetBlock() {
         block = 0;
-        logs.push_back(TextFormat("%s's block reset to 0", name.c_str()));
     }
 };
 
@@ -62,20 +69,23 @@ protected:
     int maxEnergy;
 
 public:
-    Player(string pName, int pHp, int pMaxHp, int pBlock, int pEnergy, int pMaxEnergy) 
-        : Character(pName, pHp, pMaxHp, pBlock), energy(pEnergy), maxEnergy(pMaxEnergy) {}
+    Player(string name, int hp, int maxHp, int block, int energy, int maxEnergy) 
+    : Character(name, hp, maxHp, block), energy(energy), maxEnergy(maxEnergy) {}
         
-    int getEnergy() const { return energy; }
-    int getMaxEnergy() const { return maxEnergy; }
+    int getEnergy() const {
+        return energy; 
+    }
+    int getMaxEnergy() const {
+        return maxEnergy; 
+    }
 
-    void resetEnergy(vector<string>& logs) {
+    void resetEnergy() {
         energy = maxEnergy;
-        logs.push_back(TextFormat("%s's energy reset to %d", name.c_str(), maxEnergy));
     }
     void gainEnergy(int cardEnergyGained, vector<string>& logs){
         if (cardEnergyGained > 0){
             energy += cardEnergyGained;
-            logs.push_back(TextFormat("%s's energy reset to %d", name.c_str(), maxEnergy));
+            logs.push_back(TextFormat("%s gain %d energy", name.c_str(), cardEnergyGained));
         }
     }
     void useEnergy(int cardEnergyCost) {
@@ -86,15 +96,22 @@ public:
 class Enemy : public Character {
 protected:
     int atk;
+    int strength;
 
 public:
-    Enemy(string eName, int eHp, int eMaxHp, int eBlock, int eAtk) 
-        : Character(eName, eHp, eMaxHp, eBlock), atk(eAtk) {}
+    Enemy(string name, int hp, int maxHp, int block, int atk, int strength) 
+        : Character(name, hp, maxHp, block), atk(atk), strength(strength){}
         
-    int getAtk() const { return atk; }
-
+    int getAtk() const {
+        return atk; 
+    }
+    void strengthen(vector<string>& logs){
+        atk += strength;
+        logs.push_back(TextFormat("%s strengthens", name.c_str()));
+        logs.push_back(TextFormat("%s increasing ATK by %d", name.c_str(), strength));
+    }
     void attack(Player& p, vector<string>& logs) {
-        p.takeDamage(GetRandomValue(atk, atk), logs); 
+        p.takeDamage(atk, logs); 
     }
 };
 
@@ -122,14 +139,12 @@ const Card CARD_DATABASE[] = {
 };
 
 void shuffleDeck(vector<string>& logs, vector<int>& discardPile, vector<int>& drawPile) {
-    // Push the card into drawPile
     if (!discardPile.empty()){
         for (int i = 0; i < discardPile.size(); i++){
             drawPile.push_back(discardPile[i]);
         }
         discardPile.clear();
     }
-    // Shuffle deck
     if (!drawPile.empty()){
         for (int i = 0; i < drawPile.size(); i++){
             int swapIndex = GetRandomValue(0, drawPile.size() - 1);
@@ -475,10 +490,9 @@ int main(){
     Font SemiBold = LoadFont("resources/font/JetBrainsMono-SemiBold.ttf");
     Font Bold = LoadFont("resources/font/JetBrainsMono-Bold.ttf");
 
-    // Init player
+    // Init Character
     Player p ("IronClad", 80, 80, 0, 3, 3);
-    
-    Enemy e ("Anthony", 150, 150, 0, 16);
+    Enemy e ("Anthony", 250, 250, 0, 10, 6);
     
     //InitDeck Info
     /*
@@ -515,6 +529,9 @@ int main(){
     vector<int> turnBasedDamage;
     int turnFinalCalculatedDamage = 0; 
     float totalDamageBonus = 0;
+
+    // Init enemy intents
+    int intent = 0; 
     
     // Init Card
     int playerSelectedCard = -1; 
@@ -528,8 +545,8 @@ int main(){
     bool needNewQuestion = true;
 
     // Init Timer
-    float quizTimer = 0.0f;
-    float enemyTurnTimer = 0.0f; 
+    float quizTimer = 10.0f;
+    float enemyTurnTimer = 1.0f; 
 
     // Init buttons
     GameButton endTurnBtn;
@@ -638,6 +655,7 @@ int main(){
                     discardHand(hand, discardPile);
                     combatLogs.push_back(TextFormat("%s ended turn %d", p.getName().c_str(), combatTurn));
                     turnFinalCalculatedDamage = 0; 
+                    e.resetBlock();
                         if (totalQuestions > 0) {
                             // Do damage
                             initialQuestions = totalQuestions;
@@ -695,7 +713,7 @@ int main(){
                 if (IsKeyPressed(KEY_D)) playerChoice = 'D';
 
                 // Skipped question 
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && quizTimer <= 6.0f) {
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && quizTimer <= 10.0f) {
                     for (int i = 0; i < 4; i++) {
                         if (quizButtons[i].isHovered) {
                             playerChoice = quizButtons[i].choice;
@@ -704,7 +722,7 @@ int main(){
                     }
                 } 
                 bool skipTriggered = false;
-                if (quizTimer <= 6.0f){
+                if (quizTimer <= 10.0f){
                     if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && skipBtn.isHovered) || IsKeyPressed(KEY_SPACE)) {
                         skipTriggered = true;
                     }
@@ -712,7 +730,7 @@ int main(){
                 
                 // Times up 
                 bool continueTriggered = false;
-                if (quizTimer > 6.0f) {
+                if (quizTimer > 10.0f) {
                     if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && skipBtn.isHovered) || IsKeyPressed(KEY_SPACE)) {
                         skipTriggered = true;
                     }   
@@ -722,11 +740,11 @@ int main(){
                     if (skipTriggered) {
                         combatLogs.push_back("Skipped question! Damage reduced to 0.");
                         damageBonus = 0.0f;
-                    } else if (quizTimer > 6.0f) {
+                    } else if (quizTimer > 10.0f) {
                         combatLogs.push_back("Too slow! Damage reduced 50%.");
                         damageBonus = 0.5f;
                     } else if (playerChoice == currentQuiz.correctAns) {
-                        damageBonus = 1.0f + (6.0f / (20.0f + quizTimer * quizTimer));
+                        damageBonus = 1.0f + (10.0f / (20.0f + quizTimer * quizTimer));
                         combatLogs.push_back(TextFormat("Correct! Bonus: %.2fx", damageBonus));
                     } else {
                         combatLogs.push_back("Incorrect! Damage reduced 50%.");
@@ -753,58 +771,75 @@ int main(){
                     }
                 }
                 // Acculmulating timer
-                if (quizTimer <= 6.0f &&  !needNewQuestion) {
+                if (quizTimer <= 10.0f &&  !needNewQuestion) {
                     quizTimer += GetFrameTime();
                 }
                 break;
             }
-            case STATE_ENEMY_TURN:{
-                if (enemyTurnTimer == 0.0f) {
-                    e.attack(p, combatLogs);
-                    // Player defeated
+            case STATE_ENEMY_TURN: {
+                enemyTurnTimer += GetFrameTime();
+                
+                if (enemyTurnTimer >= 1.5f) {
+                    enemyTurnTimer = 0.0f; 
+                    if (intent == 0){
+                        e.addBlock(GetRandomValue(10, 15), combatLogs);
+                    }
+                    else if (intent == 1){
+                        e.strengthen(combatLogs);
+                    }
+                    else if (intent == 2) { 
+                        e.addBlock(GetRandomValue(10, 15), combatLogs);
+                         e.strengthen(combatLogs); 
+                    }
+                    else if (intent == 3) {
+                         e.attack(p, combatLogs);
+                          e.strengthen(combatLogs); 
+                    }
+                    else{
+                        e.attack(p, combatLogs);
+                    }
+
                     if (p.getHp() <= 0) {
                         currentState = STATE_GAME_OVER;
-                        enemyTurnTimer = 0.0f;
                         break;
                     }
-                }
-                enemyTurnTimer += GetFrameTime();
-                if (enemyTurnTimer >= 1.0f) {
-                    enemyTurnTimer = 0.0f; 
-                    // Player's turn
+
                     currentState = STATE_PLAYER_TURN;
                     combatLogs.push_back("--- Player's Turn ---");
                     combatTurn++;
                     turnFinalCalculatedDamage = 0;
-                    p.resetEnergy(combatLogs);
-                    p.resetBlock(combatLogs);
+                    
+                    p.resetEnergy();
+                    p.resetBlock();
                     drawCards(combatLogs, drawPile, hand, discardPile, 5);
-                    //Enemy gains block (random)
-                    e.resetBlock(combatLogs);
-                    e.addBlock(GetRandomValue(0, 5), combatLogs);
+                    intent = GetRandomValue(0, 6);
                 }
                 break;
             }
+
     }
         // Drawing
         BeginDrawing();
         ClearBackground(BLACK); 
         
-        // Only shown when state != viewPile
         if (currentState != STATE_VIEW_PILE){
-            //Enemy's intent classification
             string enemyIntent = "";
-            if (e.getBlock() > 0 && e.getAtk() > 0) {
+            if (intent == 0) {
+                enemyIntent = "Defend";
+            } 
+            else if (intent == 1) {
+                enemyIntent = "Stategic";
+            } 
+            else if (intent == 2) {
+                enemyIntent = "Strategic Defend";
+            }
+            else if (intent == 3) {
                 enemyIntent = "Strategic Attack";
-            } 
-            else if (e.getAtk() > 0) {
+            }
+            else{
                 enemyIntent = "Attack";
-            } 
-            else if (e.getBlock() > 0) {
-                enemyIntent = "Strategic";
             }
 
-            //Calc for the turnBasedDamage for displaying info
             int displayTotalDamage = 0;
             for (int i = 0; i < turnBasedDamage.size(); i++) {
                 displayTotalDamage += turnBasedDamage[i];
@@ -883,15 +918,15 @@ int main(){
             }
             float timeBarY = startY + (4 * rowSpacing) + 5.0f; 
             float maxBarWidth = 400.0f;
-            float currentBarWidth = maxBarWidth * (1.0f - (quizTimer / 6.0f));
+            float currentBarWidth = maxBarWidth * (1.0f - (quizTimer / 10.0f));
             if (currentBarWidth < 0) currentBarWidth = 0; 
             DrawRectangleLines(320, timeBarY, maxBarWidth, 15, GRAY);
             Color barColor = GREEN;
-            float timeRatio = quizTimer / 6.0f;
+            float timeRatio = quizTimer / 10.0f;
             if (timeRatio > 1.0f){
                 timeRatio = 1.0f;
             }
-            if (quizTimer > 6.0f) {
+            if (quizTimer > 10.0f) {
                 barColor = RED;
             } 
             else if (timeRatio < 0.5f) {
@@ -914,18 +949,17 @@ int main(){
             DrawTextEx(SemiBold, TextFormat("Total Damage Dealt: %d", turnFinalCalculatedDamage), Vector2{750, timeBarY - 3.0f}, 22, 1, RED);
             float skipBtnY = timeBarY + 25.0f;
             skipBtn.rect.y = skipBtnY; 
-            if (quizTimer > 6.0f) {
+            if (quizTimer > 10.0f) {
                 skipBtn.text1 = "Continue";
             } else {
                 skipBtn.text1 = "Skip";
             }
-
             skipBtn.draw(Regular, Color{ 60, 60, 60, 255 }, Color{ 185, 0, 0, 255 }, WHITE);
-            if (quizTimer > 6.0f) {
+            if (quizTimer > 10.0f) {
                 DrawTextEx(SemiBold, "TIME'S UP! Press Space or Click Continue.", Vector2{490, skipBtn.rect.y + 10}, 20  , 1, RED);
             } 
             else { 
-                DrawTextEx(SemiBold, TextFormat("Time Left: %.1fs", 6.0f - quizTimer), Vector2{490, skipBtn.rect.y + 10}, 20, 1, ORANGE);
+                DrawTextEx(SemiBold, TextFormat("Time Left: %.1fs", 10.0f - quizTimer), Vector2{490, skipBtn.rect.y + 10}, 20, 1, ORANGE);
             }
 
             int backLogQuestions = totalQuestions;
