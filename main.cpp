@@ -39,18 +39,18 @@ public:
         logs.push_back(TextFormat("%s gained %d block", name.c_str(), blockValue));
         block += blockValue;
     }
-    void takeDamage(int Damage, vector<string>& logs){
-        if(block >= Damage){
-            logs.push_back(TextFormat("%s blocks %d damage", name.c_str(), Damage)); 
-            block -= Damage;
+    void takeDamage(int damage, vector<string>& logs){
+        if(block >= damage){
+            logs.push_back(TextFormat("%s blocks %d damage", name.c_str(), damage)); 
+            block -= damage;
         }
         else{
-            Damage -= block;
-            hp -= Damage;
+            damage -= block;
+            hp -= damage;
             if (block > 0){
                 logs.push_back(TextFormat("%s blocks %d damage", name.c_str(), block)); 
             }
-            logs.push_back(TextFormat("%s takes %d damage", name.c_str(), Damage));
+            logs.push_back(TextFormat("%s takes %d damage", name.c_str(), damage));
             block = 0;
         }
         if(hp <= 0){
@@ -97,21 +97,131 @@ class Enemy : public Character {
 protected:
     int atk;
     int strength;
+    int type;
 
 public:
-    Enemy(string name, int hp, int maxHp, int block, int atk, int strength) 
-        : Character(name, hp, maxHp, block), atk(atk), strength(strength){}
+    int intentIndex;
+
+    Enemy(string name, int hp, int maxHp, int block, int atk, int strength, int type) 
+        : Character(name, hp, maxHp, block), atk(atk), strength(strength), type(type), intentIndex(0) {}
         
     int getAtk() const {
         return atk; 
     }
+    int getType() const {
+        return type;
+    }
+    int getIntentIndex() const {
+        return intentIndex;
+    }
+
     void strengthen(vector<string>& logs){
         atk += strength;
         logs.push_back(TextFormat("%s strengthens", name.c_str()));
         logs.push_back(TextFormat("%s increasing ATK by %d", name.c_str(), strength));
     }
     void attack(Player& p, vector<string>& logs) {
-        p.takeDamage(atk, logs); 
+        if (p.getHp() > 0){
+            p.takeDamage(atk, logs); 
+        }
+    }
+    void ultimateAttack(Player& p, vector<string>& logs) {
+        int damage = p.getHp()/12+1;
+        for (int i = 0; i < 6; i++){
+            if (p.getHp() < 0){
+                break;
+            }
+            p.takeDamage(damage, logs); 
+        }
+    }     
+    void changeIntent(Player& p, vector<string>& logs){
+        if (type == 0){
+            // Nibbit
+            if (intentIndex == 0) {
+                p.takeDamage(atk, logs); 
+                intentIndex = 1; 
+            } 
+            else if (intentIndex == 1) {
+                p.takeDamage(atk / 2, logs);
+                addBlock(10, logs);
+                intentIndex = 2; 
+            }
+            else {
+                strengthen(logs);
+                intentIndex = 0; 
+            }
+        }
+        // Anthony
+        if (type == 1){
+            if (intentIndex == 0) {
+                p.takeDamage(atk, logs); 
+                intentIndex = 1; 
+            } 
+            else if (intentIndex == 1) {
+                addBlock(16, logs);
+                intentIndex = 2; 
+            }
+            else {
+                intentIndex = 0; 
+            }
+        }
+        // Effigy
+        if (type == 2){
+            if (intentIndex == 0) {
+                intentIndex = 1; 
+            } 
+            else if (intentIndex == 1) {
+                strengthen(logs);
+                intentIndex = 2; 
+            }
+            else {
+                attack(p,logs);
+                intentIndex = 2; 
+            }
+        }
+        // Hexagonal Ghost
+        if (type == 3){
+            if (intentIndex == 0) {
+                intentIndex = 1; 
+            } 
+            else if (intentIndex == 1) {
+                ultimateAttack(p,logs);
+                intentIndex = 2; 
+            }
+            else if (intentIndex == 2) {
+                attack(p,logs);
+                attack(p,logs);
+                intentIndex = 3; 
+            }
+            else if (intentIndex == 3) {
+                attack(p,logs);
+                intentIndex = 4; 
+            }
+            else if (intentIndex == 4) {
+                addBlock(16, logs);
+                intentIndex = 5; 
+            }
+            else if (intentIndex == 5) {
+                strengthen(logs);
+                intentIndex = 6; 
+            }
+            else if (intentIndex == 6) {
+                intentIndex = 7; 
+            }
+            else if (intentIndex == 7) {
+                attack(p,logs);
+                attack(p,logs);
+                attack(p,logs);
+                attack(p,logs);
+                attack(p,logs);
+                attack(p,logs);
+                intentIndex = 8; 
+            }
+            else {
+                attack(p,logs);
+                intentIndex = 2; 
+            }
+        }
     }
 };
 
@@ -492,7 +602,20 @@ int main(){
 
     // Init Character
     Player p ("IronClad", 80, 80, 0, 3, 3);
-    Enemy e ("Anthony", 250, 250, 0, 10, 6);
+    Enemy e ("Dummy", 114514, 114514, 202266, 234, 20, 0);
+    int enemyType = 3;
+    if (enemyType == 0){
+        e =  Enemy("Nibbit", 96, 96, 0, 15, 0, 0);
+    }
+    else if (enemyType == 1){
+        e =  Enemy("Anthony", 112, 112, 16, 16, 1, 1);
+    }
+    else if (enemyType == 2){
+        e =  Enemy("Bygone Effigy", 172, 172, 0, 15, 10, 2);
+    }
+    else{
+        e =  Enemy("Hexagonal Ghost", 384, 384, 0, 4, 2, 3);
+    }
     
     //InitDeck Info
     /*
@@ -653,17 +776,14 @@ int main(){
                 }
                 if (endTurnTriggered){
                     discardHand(hand, discardPile);
-                    combatLogs.push_back(TextFormat("%s ended turn %d", p.getName().c_str(), combatTurn));
                     turnFinalCalculatedDamage = 0; 
-                    e.resetBlock();
                         if (totalQuestions > 0) {
-                            // Do damage
                             initialQuestions = totalQuestions;
                             needNewQuestion = true;
                             currentState = STATE_MATH_QUIZ;
                             combatLogs.push_back("--- Math Quiz Start ---");
                         } else {
-                            // No damage
+                            e.resetBlock();
                             currentState = STATE_ENEMY_TURN;
                             combatLogs.push_back("--- Enemy's Turn ---");
                         }
@@ -765,6 +885,7 @@ int main(){
                         if (e.getHp() <= 0) {
                             currentState = STATE_GAME_OVER;
                         } else {
+                            e.resetBlock(); 
                             currentState = STATE_ENEMY_TURN;
                             combatLogs.push_back("--- Enemy's Turn ---");
                         }
@@ -778,27 +899,10 @@ int main(){
             }
             case STATE_ENEMY_TURN: {
                 enemyTurnTimer += GetFrameTime();
-                
-                if (enemyTurnTimer >= 1.5f) {
+                if (enemyTurnTimer >= 1.0f) {
                     enemyTurnTimer = 0.0f; 
-                    if (intent == 0){
-                        e.addBlock(GetRandomValue(10, 15), combatLogs);
-                    }
-                    else if (intent == 1){
-                        e.strengthen(combatLogs);
-                    }
-                    else if (intent == 2) { 
-                        e.addBlock(GetRandomValue(10, 15), combatLogs);
-                         e.strengthen(combatLogs); 
-                    }
-                    else if (intent == 3) {
-                         e.attack(p, combatLogs);
-                          e.strengthen(combatLogs); 
-                    }
-                    else{
-                        e.attack(p, combatLogs);
-                    }
-
+                    
+                    e.changeIntent(p, combatLogs);
                     if (p.getHp() <= 0) {
                         currentState = STATE_GAME_OVER;
                         break;
@@ -812,11 +916,9 @@ int main(){
                     p.resetEnergy();
                     p.resetBlock();
                     drawCards(combatLogs, drawPile, hand, discardPile, 5);
-                    intent = GetRandomValue(0, 6);
                 }
                 break;
             }
-
     }
         // Drawing
         BeginDrawing();
@@ -824,35 +926,133 @@ int main(){
         
         if (currentState != STATE_VIEW_PILE){
             string enemyIntent = "";
-            if (intent == 0) {
-                enemyIntent = "Defend";
-            } 
-            else if (intent == 1) {
-                enemyIntent = "Stategic";
-            } 
-            else if (intent == 2) {
-                enemyIntent = "Strategic Defend";
-            }
-            else if (intent == 3) {
-                enemyIntent = "Strategic Attack";
-            }
-            else{
+            string damgeText = ""; 
+
+            int currentType = e.getType();
+            int currentIndex = e.getIntentIndex();
+            int currentAtk = e.getAtk();
+            // Nibbit
+            if (currentType == 0) { 
+            if (currentIndex == 0) {
                 enemyIntent = "Attack";
+                damgeText = TextFormat("%d", currentAtk);
+            } 
+            else if (currentIndex == 1) {
+                enemyIntent = "Attack + Defend";
+                damgeText = TextFormat("%d", currentAtk / 2);
+            } 
+            else {
+                enemyIntent = "Buff (Strengthen)";
+                damgeText = "0";
             }
+        }
+        // Anthony
+        else if (currentType == 1) { 
+            if (currentIndex == 0) {
+                enemyIntent = "Attack";
+                damgeText = TextFormat("%d", currentAtk);
+            } 
+            else if (currentIndex == 1) {
+                enemyIntent = "Defend";
+                damgeText = "0";
+            } 
+            else {
+                enemyIntent = "Stunned";
+                damgeText = "0";
+            }
+        }
+        // Bygone Effigy
+        else if (currentType == 2) { 
+            if (currentIndex == 0) {
+                enemyIntent = "Sleep";
+                damgeText = "0";
+            } 
+            else if (currentIndex == 1) {
+                enemyIntent = "Buff (Strengthen)";
+                damgeText = "0";
+            } 
+            else {
+                enemyIntent = "Attack";
+                damgeText = TextFormat("%d", currentAtk);
+            }
+        }
+        // Hexagonal Ghost
+        else if (currentType == 3) { 
+            if (currentIndex == 0) {
+                enemyIntent = "Unknown";
+                damgeText = "0";
+            } 
+            else if (currentIndex == 1) {
+                enemyIntent = "Ultimate";
+                int damage = (p.getHp() / 12) + 1;
+                damgeText = TextFormat("%d x 6", damage);
+            } 
+            else if (currentIndex == 2) {
+                enemyIntent = "Attack";
+                damgeText = TextFormat("%d x 2", currentAtk);
+            } 
+            else if (currentIndex == 3) {
+                enemyIntent = "Attack";
+                damgeText = TextFormat("%d", currentAtk);
+            } 
+            else if (currentIndex == 4) {
+                enemyIntent = "Defend";
+                damgeText = "0";
+            } 
+            else if (currentIndex == 5) {
+                enemyIntent = "Buff";
+                damgeText = "0";
+            } 
+            else if (currentIndex == 6) {
+                enemyIntent = "Unknown";
+                damgeText = "0";
+            } 
+            else if (currentIndex == 7) {
+                enemyIntent = "Ultimate";
+                damgeText = TextFormat("%d x 6", currentAtk);
+            } 
+            else {
+                enemyIntent = "Attack";
+                damgeText = TextFormat("%d", currentAtk);
+            }
+        }
 
             int displayTotalDamage = 0;
             for (int i = 0; i < turnBasedDamage.size(); i++) {
                 displayTotalDamage += turnBasedDamage[i];
             }
+
             // Display player and enemy info
             DrawTextEx(SemiBold, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 40}, 24, 1, BLUE);
-            DrawTextEx(SemiBold, TextFormat("Player Damage: %d", displayTotalDamage), Vector2{50, 70}, 24, 1, BLUE);
-            DrawTextEx(SemiBold, TextFormat("Player Questions: %d", totalQuestions), Vector2{50, 100}, 24, 1, BLUE);
-            DrawTextEx(SemiBold, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
+            if (displayTotalDamage == 0) {
+                DrawTextEx(SemiBold, TextFormat("Player Damage: ---"), Vector2{50, 70}, 24, 1, BLUE);
+            } else {
+                DrawTextEx(SemiBold, TextFormat("Player Damage: %d", displayTotalDamage), Vector2{50, 70}, 24, 1, BLUE);
+            }
+            if (totalQuestions == 0) {
+                DrawTextEx(SemiBold, TextFormat("Player Questions: ---"), Vector2{50, 100}, 24, 1, BLUE);
+            } else {
+                DrawTextEx(SemiBold, TextFormat("Player Questions: %d", totalQuestions), Vector2{50, 100}, 24, 1, BLUE);
+            }
+            if (p.getBlock() == 0) {
+                DrawTextEx(SemiBold, TextFormat("Player Block: --- "), Vector2{50, 130}, 24, 1, BLUE);
+            } else {
+                DrawTextEx(SemiBold, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
+            }
+
             DrawTextEx(SemiBold, TextFormat("%s HP: %d / %d", e.getName().c_str(), e.getHp(), e.getMaxHp()), Vector2{900, 40}, 24, 1, RED);
-            DrawTextEx(SemiBold, TextFormat("%s ATK: %d", e.getName().c_str(), e.getAtk()), Vector2{900, 70}, 24, 1, RED);
+            if (damgeText == "0") {
+                DrawTextEx(SemiBold, TextFormat("%s ATK: ---", e.getName().c_str()), Vector2{900, 70}, 24, 1, RED);
+            } else {
+                DrawTextEx(SemiBold, TextFormat("%s ATK: %s", e.getName().c_str(), damgeText.c_str()), Vector2{900, 70}, 24, 1, RED);
+            }
             DrawTextEx(SemiBold, TextFormat("%s Intent: %s", e.getName().c_str(), enemyIntent.c_str()), Vector2{900, 100}, 24, 1, RED);
-            DrawTextEx(SemiBold, TextFormat("%s BLOCK: %d", e.getName().c_str(), e.getBlock()), Vector2{900, 130}, 24, 1, RED);
+            if (e.getBlock() == 0) {
+                DrawTextEx(SemiBold, TextFormat("%s Block: ---", e.getName().c_str()), Vector2{900, 130}, 24, 1, RED);
+            } else {
+                DrawTextEx(SemiBold, TextFormat("%s Block: %d", e.getName().c_str(), e.getBlock()), Vector2{900, 130}, 24, 1, RED);
+            }
+
 
             // Draw log 
             int logY = 10;
@@ -919,7 +1119,9 @@ int main(){
             float timeBarY = startY + (4 * rowSpacing) + 5.0f; 
             float maxBarWidth = 400.0f;
             float currentBarWidth = maxBarWidth * (1.0f - (quizTimer / 10.0f));
-            if (currentBarWidth < 0) currentBarWidth = 0; 
+            if (currentBarWidth < 0){
+                currentBarWidth = 0; 
+            }
             DrawRectangleLines(320, timeBarY, maxBarWidth, 15, GRAY);
             Color barColor = GREEN;
             float timeRatio = quizTimer / 10.0f;
