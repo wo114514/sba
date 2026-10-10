@@ -603,7 +603,7 @@ int main(){
     // Init Character
     Player p ("IronClad", 80, 80, 0, 3, 3);
     Enemy e ("Dummy", 114514, 114514, 202266, 234, 20, 0);
-    int enemyType = 3;
+    int enemyType = GetRandomValue(0,3);
     if (enemyType == 0){
         e =  Enemy("Nibbit", 96, 96, 0, 15, 0, 0);
     }
