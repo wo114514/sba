@@ -142,8 +142,8 @@ public:
                 intentIndex = 1; 
             } 
             else if (intentIndex == 1) {
-                p.takeDamage(atk / 2, logs);
-                addBlock(10, logs);
+                p.takeDamage(atk, logs);
+                addBlock(atk, logs);
                 intentIndex = 2; 
             }
             else {
@@ -158,6 +158,7 @@ public:
                 intentIndex = 1; 
             } 
             else if (intentIndex == 1) {
+                p.takeDamage(atk, logs); 
                 addBlock(16, logs);
                 intentIndex = 2; 
             }
@@ -595,7 +596,7 @@ int main(){
     SetRandomSeed((unsigned int)time(NULL)); 
 
     // Init font
-    Font Thin = LoadFont("resources/font/JetBrainsMono-Thin.ttf");
+    Font Thin = LoadFont("resources/font/JetBrainsMono-Thin.ttf");  
     Font Regular = LoadFont("resources/font/JetBrainsMono-Regular.ttf");
     Font SemiBold = LoadFont("resources/font/JetBrainsMono-SemiBold.ttf");
     Font Bold = LoadFont("resources/font/JetBrainsMono-Bold.ttf");
@@ -603,9 +604,9 @@ int main(){
     // Init Character
     Player p ("IronClad", 80, 80, 0, 3, 3);
     Enemy e ("Dummy", 114514, 114514, 202266, 234, 20, 0);
-    int enemyType = GetRandomValue(0,3);
+    int enemyType = GetRandomValue(3, 3);
     if (enemyType == 0){
-        e =  Enemy("Nibbit", 96, 96, 0, 15, 0, 0);
+        e =  Enemy("Nibbit", 96, 96, 0, 15, 3, 0);
     }
     else if (enemyType == 1){
         e =  Enemy("Anthony", 112, 112, 16, 16, 1, 1);
@@ -614,7 +615,7 @@ int main(){
         e =  Enemy("Bygone Effigy", 172, 172, 0, 15, 10, 2);
     }
     else{
-        e =  Enemy("Hexagonal Ghost", 384, 384, 0, 4, 2, 3);
+        e =  Enemy("Hexagonal Ghost", 304, 304, 0, 4, 1, 3);
     }
     
     //InitDeck Info
@@ -939,10 +940,10 @@ int main(){
             } 
             else if (currentIndex == 1) {
                 enemyIntent = "Attack + Defend";
-                damgeText = TextFormat("%d", currentAtk / 2);
+                damgeText = TextFormat("%d", currentAtk);
             } 
             else {
-                enemyIntent = "Buff (Strengthen)";
+                enemyIntent = "Buff";
                 damgeText = "0";
             }
         }
@@ -953,8 +954,8 @@ int main(){
                 damgeText = TextFormat("%d", currentAtk);
             } 
             else if (currentIndex == 1) {
-                enemyIntent = "Defend";
-                damgeText = "0";
+                enemyIntent = "Attack + Defend";
+                damgeText = TextFormat("%d", currentAtk);
             } 
             else {
                 enemyIntent = "Stunned";
@@ -968,7 +969,7 @@ int main(){
                 damgeText = "0";
             } 
             else if (currentIndex == 1) {
-                enemyIntent = "Buff (Strengthen)";
+                enemyIntent = "Buff";
                 damgeText = "0";
             } 
             else {
