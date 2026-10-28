@@ -128,7 +128,7 @@ public:
     void ultimateAttack(Player& p, vector<string>& logs) {
         int damage = p.getHp()/12+1;
         for (int i = 0; i < 6; i++){
-            if (p.getHp() <= 0){
+            if (p.getHp() < 0){
                 break;
             }
             p.takeDamage(damage, logs); 
@@ -267,27 +267,27 @@ void shuffleDeck(vector<string>& logs, vector<int>& discardPile, vector<int>& dr
     }
 }
 
-void drawCards(vector<string>& logs, vector<int>& drawPile, vector<int>& hand, vector<int>& discardPile, int numToDraw) {
-    while (numToDraw > 0) {
-        if (drawPile.empty()) {
-            shuffleDeck(logs, discardPile, drawPile);
+    void drawCards(vector<string>& logs, vector<int>& drawPile, vector<int>& hand, vector<int>& discardPile, int numToDraw) {
+        while (numToDraw > 0) {
             if (drawPile.empty()) {
-                logs.push_back("Not enough cards to draw");
-                break; 
+                shuffleDeck(logs, discardPile, drawPile);
+                if (drawPile.empty()) {
+                    logs.push_back("Not enough cards to draw");
+                    break; 
+                }
             }
+            int topCardID = drawPile.back(); 
+            if (hand.size() < 7){
+                hand.push_back(topCardID);   
+            }
+            else{
+                discardPile.push_back(topCardID);   
+                logs.push_back("Hand is full");
+            }
+            drawPile.pop_back();            
+            numToDraw--; 
         }
-        int topCardID = drawPile.back(); 
-        if (hand.size() < 7){
-            hand.push_back(topCardID);   
-        }
-        else{
-            discardPile.push_back(topCardID);   
-            logs.push_back("Hand is full");
-        }
-        drawPile.pop_back();          
-        numToDraw--; 
     }
-}
 
 void discardHand(vector<int>& hand, vector<int>& discardPile){
     if (!hand.empty()){
@@ -526,7 +526,7 @@ struct QuizButton {
 
 class QuestionGenerator {
 public:
-    QuestionGenerator() {}
+    QuestionGenerator() {}  
 
     QuizInfo generateAlgebraQuestion() {
         int A = GetRandomValue(1, 10);
@@ -541,15 +541,13 @@ public:
         int lengthType = GetRandomValue(1, 3); // 1 = Short, 2 = Medium, 3 = Long
 
         if (lengthType == 1) {
-        // Standard 1-line question
+            // Standard 1-line question
             quiz.title = TextFormat("Simplify: %d y - (-%d y) = ?", A, B);
-        } 
-        else if (lengthType == 2) {
-        // Simulated 2-line question using '\n'
+        } else if (lengthType == 2) {
+            // Simulated 2-line question using '\n'
             quiz.title = TextFormat("Advanced Algebra Problem (Turn %d):\nSimplify the basic linear expression: %d y - (-%d y) = ?", GetRandomValue(1, 5), A, B);
-        } 
-        else {
-        // Simulated 3-line question using multiple '\n'
+        } else {
+            // Simulated 3-line question using multiple '\n'
             quiz.title = TextFormat("--- [MISSION CHALLENGE] ---\nGiven that y is a real variable and coefficients are non-zero.\nPlease calculate and simplify: %d y - (-%d y) = ?", A, B);
         }
 
@@ -560,24 +558,21 @@ public:
             quiz.optC = TextFormat("C. %dy", wrong2);
             quiz.optD = TextFormat("D. %dy", wrong3);
             quiz.correctAns = 'A';
-        } 
-        else if (targetPos == 2) {
+        } else if (targetPos == 2) {
             quiz.options = TextFormat("A. %dy B. %dy C. %dy D. %dy", wrong1, correctVal, wrong2, wrong3);
             quiz.optA = TextFormat("A. %dy", wrong1);
             quiz.optB = TextFormat("B. %dy", correctVal);
             quiz.optC = TextFormat("C. %dy", wrong2);
             quiz.optD = TextFormat("D. %dy", wrong3);
             quiz.correctAns = 'B';
-        } 
-        else if (targetPos == 3) {
+        } else if (targetPos == 3) {
             quiz.options = TextFormat("A. %dy B. %dy C. %dy D. %dy", wrong1, wrong2, correctVal, wrong3);
             quiz.optA = TextFormat("A. %dy", wrong1);
             quiz.optB = TextFormat("B. %dy", wrong2);
             quiz.optC = TextFormat("C. %dy", correctVal);
             quiz.optD = TextFormat("D. %dy", wrong3);
             quiz.correctAns = 'C';
-        } 
-        else {
+        } else {
             quiz.options = TextFormat("A. %dy B. %dy C. %dy D. %dy", wrong1, wrong2, wrong3, correctVal);
             quiz.optA = TextFormat("A. %dy", wrong1);
             quiz.optB = TextFormat("B. %dy", wrong2);
@@ -587,7 +582,7 @@ public:
         }
 
         return quiz;
-    }
+    }   
 };
 
 int main(){
@@ -597,6 +592,13 @@ int main(){
     InitWindow(screenWidth, screenHeight, "Slay the Math");
     SetTargetFPS(60); 
 
+    // Init icon
+    Image icon = LoadImage("resources/img/icon.png"); 
+    ImageResize(&icon, 64, 64);
+    ImageFormat(&icon, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8); 
+    
+    SetWindowIcon(icon);
+    
     // Init Random Seed
     SetRandomSeed((unsigned int)time(NULL)); 
 
@@ -609,7 +611,7 @@ int main(){
     // Init Character
     Player p ("IronClad", 80, 80, 0, 3, 3);
     Enemy e ("Dummy", 114514, 114514, 202266, 234, 20, 0);
-    int enemyType = GetRandomValue(0, 3);
+    int enemyType = GetRandomValue(3, 3);
     if (enemyType == 0){
         e =  Enemy("Nibbit", 96, 96, 0, 15, 3, 0);
     }
@@ -696,7 +698,7 @@ int main(){
     quizButtons[2].init('C');
     quizButtons[3].init('D');
 
-     // Init decks
+    // Init decks
     shuffleDeck(combatLogs, discardPile, drawPile); 
     drawCards(combatLogs, drawPile, hand, discardPile, 5);
 
@@ -788,8 +790,7 @@ int main(){
                             needNewQuestion = true;
                             currentState = STATE_MATH_QUIZ;
                             combatLogs.push_back("--- Math Quiz Start ---");
-                        } 
-                        else {
+                        } else {
                             e.resetBlock();
                             currentState = STATE_ENEMY_TURN;
                             combatLogs.push_back("--- Enemy's Turn ---");
@@ -867,16 +868,13 @@ int main(){
                     if (skipTriggered) {
                         combatLogs.push_back("Skipped question! Damage reduced to 0.");
                         damageBonus = 0.0f;
-                    } 
-                    else if (quizTimer > 10.0f) {
+                    } else if (quizTimer > 10.0f) {
                         combatLogs.push_back("Too slow! Damage reduced 50%.");
                         damageBonus = 0.5f;
-                    } 
-                    else if (playerChoice == currentQuiz.correctAns) {
+                    } else if (playerChoice == currentQuiz.correctAns) {
                         damageBonus = 1.0f + (10.0f / (20.0f + quizTimer * quizTimer));
                         combatLogs.push_back(TextFormat("Correct! Bonus: %.2fx", damageBonus));
-                    } 
-                    else {
+                    } else {
                         combatLogs.push_back("Incorrect! Damage reduced 50%.");
                         damageBonus = 0.5f;
                     }
@@ -894,8 +892,7 @@ int main(){
                         turnBasedDamage.clear();
                         if (e.getHp() <= 0) {
                             currentState = STATE_GAME_OVER;
-                        } 
-                        else {
+                        } else {
                             e.resetBlock(); 
                             currentState = STATE_ENEMY_TURN;
                             combatLogs.push_back("--- Enemy's Turn ---");
@@ -1037,35 +1034,30 @@ int main(){
             DrawTextEx(SemiBold, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 40}, 24, 1, BLUE);
             if (displayTotalDamage == 0) {
                 DrawTextEx(SemiBold, TextFormat("Player Damage: ---"), Vector2{50, 70}, 24, 1, BLUE);
-            } 
-            else {
+            } else {
                 DrawTextEx(SemiBold, TextFormat("Player Damage: %d", displayTotalDamage), Vector2{50, 70}, 24, 1, BLUE);
             }
             if (totalQuestions == 0) {
                 DrawTextEx(SemiBold, TextFormat("Player Questions: ---"), Vector2{50, 100}, 24, 1, BLUE);
-            } 
-            else {
+            } else {
                 DrawTextEx(SemiBold, TextFormat("Player Questions: %d", totalQuestions), Vector2{50, 100}, 24, 1, BLUE);
             }
             if (p.getBlock() == 0) {
                 DrawTextEx(SemiBold, TextFormat("Player Block: --- "), Vector2{50, 130}, 24, 1, BLUE);
-            } 
-            else {
+            } else {
                 DrawTextEx(SemiBold, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
             }
 
             DrawTextEx(SemiBold, TextFormat("%s HP: %d / %d", e.getName().c_str(), e.getHp(), e.getMaxHp()), Vector2{900, 40}, 24, 1, RED);
             if (damgeText == "0") {
                 DrawTextEx(SemiBold, TextFormat("%s ATK: ---", e.getName().c_str()), Vector2{900, 70}, 24, 1, RED);
-            } 
-            else {
+            } else {
                 DrawTextEx(SemiBold, TextFormat("%s ATK: %s", e.getName().c_str(), damgeText.c_str()), Vector2{900, 70}, 24, 1, RED);
             }
             DrawTextEx(SemiBold, TextFormat("%s Intent: %s", e.getName().c_str(), enemyIntent.c_str()), Vector2{900, 100}, 24, 1, RED);
             if (e.getBlock() == 0) {
                 DrawTextEx(SemiBold, TextFormat("%s Block: ---", e.getName().c_str()), Vector2{900, 130}, 24, 1, RED);
-            } 
-            else {
+            } else {
                 DrawTextEx(SemiBold, TextFormat("%s Block: %d", e.getName().c_str(), e.getBlock()), Vector2{900, 130}, 24, 1, RED);
             }
 
@@ -1169,8 +1161,7 @@ int main(){
             skipBtn.rect.y = skipBtnY; 
             if (quizTimer > 10.0f) {
                 skipBtn.text1 = "Continue";
-            } 
-            else {
+            } else {
                 skipBtn.text1 = "Skip";
             }
             skipBtn.draw(Regular, Color{ 60, 60, 60, 255 }, Color{ 185, 0, 0, 255 }, WHITE);
@@ -1208,5 +1199,6 @@ int main(){
     UnloadFont(Regular);
     UnloadFont(SemiBold);
     UnloadFont(Bold);
+    UnloadImage(icon); 
     CloseWindow();
 }
