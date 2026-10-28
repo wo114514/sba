@@ -402,7 +402,7 @@ int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, i
             if (currentCard.damage > 0)     { energyGainedYOffset += 22.0f; }
             if (currentCard.block > 0)      { energyGainedYOffset += 22.0f; }
             if (currentCard.drawNumber > 0) { energyGainedYOffset += 22.0f; }
-            DrawTextEx(font, TextFormat("NRG: +%d", currentCard.energyGained), Vector2{textAlignX, energyGainedYOffset}, 22, 1, ORANGE);
+            DrawTextEx(font, TextFormat("ENG: +%d", currentCard.energyGained), Vector2{textAlignX, energyGainedYOffset}, 22, 1, ORANGE);
         }
 
         // Draw Card Index
@@ -726,7 +726,7 @@ int main(){
                 }
                 if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     if (frameClickedIdx != -1) {
-                        if (playerSelectedCard == frameClickedIdx) {
+                        if (playerSelectedCard == frameClickedIdx) {    
                             playCardTriggered = true;
                         }
                         else {
