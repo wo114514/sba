@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "Card.h"  
 #include "Character.h"
+#include "QuestionGenerator.h"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -32,27 +33,27 @@ void shuffleDeck(vector<string>& logs, vector<int>& discardPile, vector<int>& dr
     }
 }
 
-    void drawCards(vector<string>& logs, vector<int>& drawPile, vector<int>& hand, vector<int>& discardPile, int numToDraw) {
-        while (numToDraw > 0) {
+void drawCards(vector<string>& logs, vector<int>& drawPile, vector<int>& hand, vector<int>& discardPile, int numToDraw) {
+    while (numToDraw > 0) {
+        if (drawPile.empty()) {
+            shuffleDeck(logs, discardPile, drawPile);
             if (drawPile.empty()) {
-                shuffleDeck(logs, discardPile, drawPile);
-                if (drawPile.empty()) {
-                    logs.push_back("Not enough cards to draw");
-                    break; 
-                }
+                logs.push_back("Not enough cards to draw");
+                break; 
             }
-            int topCardID = drawPile.back(); 
-            if (hand.size() < 7){
-                hand.push_back(topCardID);   
-            }
-            else{
-                discardPile.push_back(topCardID);   
-                logs.push_back("Hand is full");
-            }
-            drawPile.pop_back();            
-            numToDraw--; 
         }
+        int topCardID = drawPile.back(); 
+        if (hand.size() < 7){
+            hand.push_back(topCardID);   
+        }
+        else{
+            discardPile.push_back(topCardID);   
+            logs.push_back("Hand is full");
+        }
+        drawPile.pop_back();            
+        numToDraw--; 
     }
+}
 
 void discardHand(vector<int>& hand, vector<int>& discardPile){
     if (!hand.empty()){
@@ -177,16 +178,6 @@ int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, i
     return clickedIndex;
 }
 
-struct QuizInfo {
-    string title;
-    string options; // Options
-    string optA;    // Stores text A
-    string optB;    // Stores text B
-    string optC;    // Stores text C
-    string optD;    // Stores text D
-    char correctAns;
-};
-
 struct GameButton {
     Rectangle rect;
     string text1;
@@ -289,67 +280,6 @@ struct QuizButton {
     }
 };
 
-class QuestionGenerator {
-public:
-    QuestionGenerator() {}  
-
-    QuizInfo generateAlgebraQuestion() {
-        int A = GetRandomValue(1, 10);
-        int B = GetRandomValue(1, 10);
-        int correctVal = A + B;
-        int wrong1 = A - B;
-        int wrong2 = A + B - GetRandomValue(1, 10);
-        int wrong3 = A + B + GetRandomValue(1, 10);
-        int targetPos = GetRandomValue(1, 4);
-
-        QuizInfo quiz;
-        int lengthType = GetRandomValue(1, 3); // 1 = Short, 2 = Medium, 3 = Long
-
-        if (lengthType == 1) {
-            // Standard 1-line question
-            quiz.title = TextFormat("Simplify: %d y - (-%d y) = ?", A, B);
-        } else if (lengthType == 2) {
-            // Simulated 2-line question using '\n'
-            quiz.title = TextFormat("Advanced Algebra Problem (Turn %d):\nSimplify the basic linear expression: %d y - (-%d y) = ?", GetRandomValue(1, 5), A, B);
-        } else {
-            // Simulated 3-line question using multiple '\n'
-            quiz.title = TextFormat("--- [MISSION CHALLENGE] ---\nGiven that y is a real variable and coefficients are non-zero.\nPlease calculate and simplify: %d y - (-%d y) = ?", A, B);
-        }
-
-        if (targetPos == 1) {
-            quiz.options = TextFormat("A. %dy B. %dy C. %dy D. %dy", correctVal, wrong1, wrong2, wrong3);
-            quiz.optA = TextFormat("A. %dy", correctVal);
-            quiz.optB = TextFormat("B. %dy", wrong1);
-            quiz.optC = TextFormat("C. %dy", wrong2);
-            quiz.optD = TextFormat("D. %dy", wrong3);
-            quiz.correctAns = 'A';
-        } else if (targetPos == 2) {
-            quiz.options = TextFormat("A. %dy B. %dy C. %dy D. %dy", wrong1, correctVal, wrong2, wrong3);
-            quiz.optA = TextFormat("A. %dy", wrong1);
-            quiz.optB = TextFormat("B. %dy", correctVal);
-            quiz.optC = TextFormat("C. %dy", wrong2);
-            quiz.optD = TextFormat("D. %dy", wrong3);
-            quiz.correctAns = 'B';
-        } else if (targetPos == 3) {
-            quiz.options = TextFormat("A. %dy B. %dy C. %dy D. %dy", wrong1, wrong2, correctVal, wrong3);
-            quiz.optA = TextFormat("A. %dy", wrong1);
-            quiz.optB = TextFormat("B. %dy", wrong2);
-            quiz.optC = TextFormat("C. %dy", correctVal);
-            quiz.optD = TextFormat("D. %dy", wrong3);
-            quiz.correctAns = 'C';
-        } else {
-            quiz.options = TextFormat("A. %dy B. %dy C. %dy D. %dy", wrong1, wrong2, wrong3, correctVal);
-            quiz.optA = TextFormat("A. %dy", wrong1);
-            quiz.optB = TextFormat("B. %dy", wrong2);
-            quiz.optC = TextFormat("C. %dy", wrong3);
-            quiz.optD = TextFormat("D. %dy", correctVal);
-            quiz.correctAns = 'D';
-        }
-
-        return quiz;
-    }   
-};
-
 int main(){
     // Init Screen
     const int screenWidth = 1280;
@@ -376,7 +306,7 @@ int main(){
     // Init Character
     Player p ("IronClad", 80, 80, 0, 3, 3);
     Enemy e ("Dummy", 114514, 114514, 202266, 234, 20, 0);
-    int enemyType = GetRandomValue(3, 3);
+    int enemyType = GetRandomValue(0, 3);
     if (enemyType == 0){
         e =  Enemy("Nibbit", 96, 96, 0, 15, 3, 0);
     }
@@ -481,7 +411,7 @@ int main(){
                 if ((IsKeyPressed(KEY_FIVE)  || IsKeyPressed(KEY_KP_5)) && hand.size() >= 5) playerSelectedCard = 4;
                 if ((IsKeyPressed(KEY_SIX)   || IsKeyPressed(KEY_KP_6)) && hand.size() >= 6) playerSelectedCard = 5;
                 if ((IsKeyPressed(KEY_SEVEN) || IsKeyPressed(KEY_KP_7)) && hand.size() >= 7) playerSelectedCard = 6;
-               if ((IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) && playerSelectedCard != -1) {
+                if ((IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) && playerSelectedCard != -1) {
                     playCardTriggered = true;
                 }
                 endTurnBtn.text1 = TextFormat("End Turn %d", combatTurn);
