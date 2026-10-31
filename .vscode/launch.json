@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "C/C++: g++.exe 生成和調試活動文件",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\main.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "${workspaceFolder}\\compiler\\bin\\gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "為 gdb 啟用整齊列印",
+                    "text": "-enable-pretty-printing",
+                    "allowedFailures": true
+                }
+            ],
+            "preLaunchTask": "C/C++: g++.exe build active file"
+        }
+    ]
+}
