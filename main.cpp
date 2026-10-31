@@ -291,11 +291,13 @@ int main(){
     Image icon = LoadImage("resources/img/icon.png"); 
     ImageResize(&icon, 64, 64);
     ImageFormat(&icon, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8); 
-    
     SetWindowIcon(icon);
     
     // Init Random Seed
     SetRandomSeed((unsigned int)time(NULL)); 
+
+    // Init Quesion's difficulties
+    int difficulty = 2; 
 
     // Init font
     Font Thin = LoadFont("resources/font/JetBrainsMono-Thin.ttf");  
@@ -504,7 +506,7 @@ int main(){
             }
             case STATE_MATH_QUIZ:{
                 if (needNewQuestion) {
-                    currentQuiz = g.generateAlgebraQuestion();
+                    currentQuiz = g.generateAlgebraQuestion(difficulty);
                     quizTimer = 0.0f;
                     needNewQuestion = false;
                 }

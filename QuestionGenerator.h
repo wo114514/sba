@@ -17,7 +17,7 @@ struct QuizInfo {
 class QuestionGenerator {
 public:
     QuestionGenerator();
-    QuizInfo generateAlgebraQuestion();   
+    QuizInfo generateAlgebraQuestion(int difficulty);   
 };
 
 #endif
