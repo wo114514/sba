@@ -297,7 +297,7 @@ int main(){
     SetRandomSeed((unsigned int)time(NULL)); 
 
     // Init Quesion's difficulties
-    int difficulty = 2; 
+    int difficulty = 1; 
 
     // Init font
     Font Thin = LoadFont("resources/font/JetBrainsMono-Thin.ttf");  
