@@ -316,7 +316,7 @@ int main(){
         e =  Enemy("Anthony", 112, 112, 16, 16, 1, 1);
     }
     else if (enemyType == 2){
-        e =  Enemy("Bygone Effigy", 172, 172, 0, 15, 10, 2);
+        e =  Enemy("Bygone Effigy", 156, 156, 0, 10, 10, 2);
     }
     else{
         e =  Enemy("Hexagonal Ghost", 304, 304, 0, 4, 1, 3);
