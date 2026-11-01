@@ -189,11 +189,11 @@ int main(){
     InitWindow(screenWidth, screenHeight, "Slay the Math");
     SetWindowMinSize(1280, 720); 
     RenderTexture2D target = LoadRenderTexture(virtualScreenWidth, virtualScreenHeight);
-    SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
+    SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
     SetTargetFPS(60); 
 
     // Init icon
-    Image icon = LoadImage("resources/img/icon.png"); 
+    Image icon = LoadImage("assets/img/icon.png"); 
     ImageResize(&icon, 64, 64);
     ImageFormat(&icon, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8); 
     SetWindowIcon(icon);
@@ -205,10 +205,10 @@ int main(){
     int difficulty = 1; 
 
     // Init font
-    Font Thin = LoadFont("resources/font/JetBrainsMono-Thin.ttf");  
-    Font Regular = LoadFont("resources/font/JetBrainsMono-Regular.ttf");
-    Font SemiBold = LoadFont("resources/font/JetBrainsMono-SemiBold.ttf");
-    Font Bold = LoadFont("resources/font/JetBrainsMono-Bold.ttf");
+    Font Thin = LoadFont("assets/fonts/JetBrainsMono-Thin.ttf");  
+    Font Regular = LoadFont("assets/fonts/JetBrainsMono-Regular.ttf");
+    Font SemiBold = LoadFont("assets/fonts/JetBrainsMono-SemiBold.ttf");
+    Font Bold = LoadFont("assets/fonts/JetBrainsMono-Bold.ttf");
 
     // Init Character
     Player p ("IronClad", 80, 80, 0, 3, 3);
@@ -320,18 +320,15 @@ int main(){
         int currentScreenHeight = GetScreenHeight();
         float scale = min((float)currentW / 1280.0f, (float)currentH / 720.0f);
         
-        // 計算虛擬畫布在實體視窗中居中時，產生的黑邊偏移量
         float offsetX = (currentW - (1280.0f * scale)) * 0.5f;
         float offsetY = (currentH - (720.0f * scale)) * 0.5f;
         
         Vector2 realMousePos = GetMousePosition();
         Vector2 virtualMousePos = { 0 };
         
-        // 👈 核心公式：必須先減去黑邊偏移量，才能除以縮放比！
         virtualMousePos.x = (realMousePos.x - offsetX) / scale;
         virtualMousePos.y = (realMousePos.y - offsetY) / scale;
 
-        // 防禦性邊界限制：防止滑鼠移到黑邊時算出來的虛擬坐標變成負數或超出 1280x720
         if (virtualMousePos.x < 0) virtualMousePos.x = 0;
         if (virtualMousePos.x > 1280) virtualMousePos.x = 1280;
         if (virtualMousePos.y < 0) virtualMousePos.y = 0;
