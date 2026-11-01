@@ -2,6 +2,7 @@
 #define UIComponents_H
 #include "raylib.h"
 #include <iostream>
+#include <string>
 #include <vector>
 using namespace std;
 

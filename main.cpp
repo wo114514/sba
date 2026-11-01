@@ -446,7 +446,6 @@ int main(){
                     quizTimer = 0.0f;
                     needNewQuestion = false;
                 }
-                Vector2 mousePos = realMousePos;
                 // Question text starts here
                 float questionX = 320.0f;
                 float questionY = 280.0f; 
