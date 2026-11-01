@@ -2,6 +2,7 @@
 #include "Card.h"  
 #include "Character.h"
 #include "QuestionGenerator.h"
+#include "UIComponents.h"
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -64,7 +65,7 @@ void discardHand(vector<int>& hand, vector<int>& discardPile){
     }
 }
 
-int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, int selectedCardIdx, bool isUpdate) {
+int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, int selectedCardIdx, bool isUpdate, Vector2 currentMousePos) {
     if (deck.empty()) {
         int textWidth = MeasureTextEx(font, "Your hand is empty!", 26, 1).x;
         DrawTextEx(font, "Your hand is empty!", Vector2{(1280.0f - textWidth) / 2.0f, (float)startY + 50}, 26, 1, DARKGRAY);
@@ -89,7 +90,7 @@ int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, i
         float currentCardY = (float)startY;
 
         Rectangle baseCheckRect = { posX, (float)startY, cardWidth, cardHeight };
-        bool isHovered = CheckCollisionPointRec(GetMousePosition(), baseCheckRect);
+        bool isHovered = CheckCollisionPointRec(currentMousePos, baseCheckRect);
 
         if (i == selectedCardIdx || isHovered) {
             currentCardY = (float)startY - 40.0f;
@@ -178,113 +179,17 @@ int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, i
     return clickedIndex;
 }
 
-struct GameButton {
-    Rectangle rect;
-    string text1;
-    string text2;
-    string text3;
-    bool isHovered;
-
-    // Init button positions and size
-    void init(float x, float y, float width, float height, string t1, string t2 = "", string t3 = "") {
-        rect = { x, y, width, height };
-        text1 = t1;
-        text2 = t2;
-        text3 = t3;
-        isHovered = false;
-    }
-
-    // Hover detection
-    void update(Vector2 mousePos) {
-        isHovered = CheckCollisionPointRec(mousePos, rect);
-    }
-
-    // Click detection
-    bool isClicked(Vector2 mousePos) {
-        return isHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
-    }
-
-    // Render button and border
-    void draw(Font font, Color baseColor, Color hoverColor, Color borderColor) {
-        update(GetMousePosition());
-        Color currentBg;
-        
-        // Hover Color change
-        if (isHovered) {
-            currentBg = hoverColor;
-        } else {
-            currentBg = baseColor;
-        }
-        
-        // Draw rectangle and border lines
-        DrawRectangleRec(rect, currentBg);
-        DrawRectangleLinesEx(rect, 1, borderColor);
-
-        // Text positioning logic 
-        if (text2 == "" && text3 == "") {
-            // Centered 
-            Vector2 textSize = MeasureTextEx(font, text1.c_str(), 20, 1);
-            float tx = rect.x + (rect.width - textSize.x) / 2.0f;
-            float ty = rect.y + (rect.height - textSize.y) / 2.0f;
-            DrawTextEx(font, text1.c_str(), Vector2{tx, ty}, 20, 1, WHITE);
-        } else {
-            // Centered when more lines
-            DrawTextEx(font, text1.c_str(), Vector2{ rect.x + 18, rect.y + 10 }, 20, 1, WHITE);
-            if (text2 != "") DrawTextEx(font, text2.c_str(), Vector2{ rect.x + 18, rect.y + 32 }, 20, 1, WHITE);
-            if (text3 != "") DrawTextEx(font, text3.c_str(), Vector2{ rect.x + 18, rect.y + 54 }, 20, 1, WHITE);
-        }
-    }
-};
-
-struct QuizButton {
-    Rectangle rect;
-    string text;
-    //'A', 'B', 'C', or 'D'
-    char choice; 
-    bool isHovered;
-    // Init buttons
-    void init(char ch) {
-        choice = ch;
-        rect = { 0, 0, 0, 0 };
-        text = "";
-        isHovered = false;
-    }
-    // Hitbox update
-    void update(Vector2 mousePos, const string& optionText, float posX, float posY, int fontSize, Font font) {
-        text = optionText;
-        int textWidth = MeasureTextEx(font, text.c_str(), fontSize, 1.0f).x; 
-        rect = { posX, posY, (float)textWidth + 30, (float)fontSize + 20 };
-        isHovered = CheckCollisionPointRec(mousePos, rect);
-    }
-
-    // Draws the button box, border, hover colors
-    void draw(int fontSize, Font font) {
-        Color boxColor;
-        Color borderColor;
-        Color textColor;
-
-        if (isHovered) {
-            boxColor = Color{ 45, 60, 85, 255 };
-            borderColor = GOLD;
-            textColor = GOLD;
-        }
-        else {
-            boxColor = Color{ 20, 25, 35, 255 };
-            borderColor = Color{ 80, 90, 105, 255 };
-            textColor = WHITE;
-        }
-
-        DrawRectangleRec(rect, boxColor);
-        DrawRectangleLinesEx(rect, 2, borderColor); 
-        DrawTextEx(font, text.c_str(), Vector2{rect.x + 15, rect.y + 10}, fontSize, 1, textColor);
-    }
-};
-
 int main(){
     // Init Screen
-    const int screenWidth = 1280;
-    const int screenHeight = 720;
+    int screenWidth = 1280;
+    int screenHeight = 720;
+    const int virtualScreenWidth = 1280;
+    const int virtualScreenHeight = 720;
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE); 
     InitWindow(screenWidth, screenHeight, "Slay the Math");
+    SetWindowMinSize(1280, 720); 
+    RenderTexture2D target = LoadRenderTexture(virtualScreenWidth, virtualScreenHeight);
+    SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
     SetTargetFPS(60); 
 
     // Init icon
@@ -377,10 +282,10 @@ int main(){
     float enemyTurnTimer = 1.0f; 
 
     // Init buttons
-    GameButton endTurnBtn;
-    GameButton skipBtn;
-    GameButton viewDrawPileBtn;
-    GameButton backToTurnBtn;     
+    gameButton endTurnBtn;
+    gameButton skipBtn;
+    gameButton viewDrawPileBtn;
+    gameButton backToTurnBtn;     
     
     // Init button data
     endTurnBtn.init(1100, 410, 150, 50, "End Turn");
@@ -389,7 +294,7 @@ int main(){
     backToTurnBtn.init(15, 560, 75, 85, "Back", "To", "Turn");
 
     // Init Quiz buttons
-    QuizButton quizButtons[4];
+    quizButton quizButtons[4];
     quizButtons[0].init('A');
     quizButtons[1].init('B');
     quizButtons[2].init('C');
@@ -401,6 +306,37 @@ int main(){
 
     // Main Game Loop
     while (!WindowShouldClose()) {
+        int currentW = GetScreenWidth();
+        int currentH = GetScreenHeight();
+        int expectedH = (int)((float)currentW * 9.0f / 16.0f);
+        
+        if (currentH != expectedH) {
+            SetWindowSize(currentW, expectedH);
+            currentW = GetScreenWidth();
+            currentH = GetScreenHeight();
+        }
+
+        int currentScreenWidth = GetScreenWidth();
+        int currentScreenHeight = GetScreenHeight();
+        float scale = min((float)currentW / 1280.0f, (float)currentH / 720.0f);
+        
+        // 計算虛擬畫布在實體視窗中居中時，產生的黑邊偏移量
+        float offsetX = (currentW - (1280.0f * scale)) * 0.5f;
+        float offsetY = (currentH - (720.0f * scale)) * 0.5f;
+        
+        Vector2 realMousePos = GetMousePosition();
+        Vector2 virtualMousePos = { 0 };
+        
+        // 👈 核心公式：必須先減去黑邊偏移量，才能除以縮放比！
+        virtualMousePos.x = (realMousePos.x - offsetX) / scale;
+        virtualMousePos.y = (realMousePos.y - offsetY) / scale;
+
+        // 防禦性邊界限制：防止滑鼠移到黑邊時算出來的虛擬坐標變成負數或超出 1280x720
+        if (virtualMousePos.x < 0) virtualMousePos.x = 0;
+        if (virtualMousePos.x > 1280) virtualMousePos.x = 1280;
+        if (virtualMousePos.y < 0) virtualMousePos.y = 0;
+        if (virtualMousePos.y > 720) virtualMousePos.y = 720;
+
         switch (currentState) {
             case STATE_PLAYER_TURN:{
                 bool playCardTriggered = false;
@@ -417,7 +353,7 @@ int main(){
                     playCardTriggered = true;
                 }
                 endTurnBtn.text1 = TextFormat("End Turn %d", combatTurn);
-                int frameClickedIdx = drawDeck(hand, 530, Regular, p.getEnergy(), playerSelectedCard, true);
+                int frameClickedIdx = drawDeck(hand, 530, Regular, p.getEnergy(), playerSelectedCard, true, virtualMousePos);
                 if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
                     playerSelectedCard = -1;
                 }
@@ -469,10 +405,10 @@ int main(){
                     playCardTriggered = false; 
                 }
 
-                if (endTurnBtn.isClicked(GetMousePosition())) {
+                if (endTurnBtn.isClicked(realMousePos)) {
                     endTurnTriggered = true;
                 }
-                if (viewDrawPileBtn.isClicked(GetMousePosition())) {
+                if (viewDrawPileBtn.isClicked(realMousePos)) {
                     lastState = STATE_PLAYER_TURN;
                     currentState = STATE_VIEW_PILE;
                 }
@@ -499,7 +435,7 @@ int main(){
                 if (IsKeyPressed(KEY_SPACE)) {
                     currentState = lastState;
                 }
-                if (backToTurnBtn.isClicked(GetMousePosition())) {
+                if (backToTurnBtn.isClicked(realMousePos)) {
                     currentState = lastState;
                 }
                 break;
@@ -510,7 +446,7 @@ int main(){
                     quizTimer = 0.0f;
                     needNewQuestion = false;
                 }
-                Vector2 mousePos = GetMousePosition();
+                Vector2 mousePos = realMousePos;
                 // Question text starts here
                 float questionX = 320.0f;
                 float questionY = 280.0f; 
@@ -526,10 +462,10 @@ int main(){
                 float rowSpacing = 48.0f; 
 
                 // Update quiz buttons 
-                quizButtons[0].update(mousePos, currentQuiz.optA, startX, startY + (0 * rowSpacing), fontSize, Regular);
-                quizButtons[1].update(mousePos, currentQuiz.optB, startX, startY + (1 * rowSpacing), fontSize, Regular);
-                quizButtons[2].update(mousePos, currentQuiz.optC, startX, startY + (2 * rowSpacing), fontSize, Regular);
-                quizButtons[3].update(mousePos, currentQuiz.optD, startX, startY + (3 * rowSpacing), fontSize, Regular);
+                quizButtons[0].update(virtualMousePos, currentQuiz.optA, startX, startY + (0 * rowSpacing), fontSize, Regular);
+                quizButtons[1].update(virtualMousePos, currentQuiz.optB, startX, startY + (1 * rowSpacing), fontSize, Regular);
+                quizButtons[2].update(virtualMousePos, currentQuiz.optC, startX, startY + (2 * rowSpacing), fontSize, Regular);
+                quizButtons[3].update(virtualMousePos, currentQuiz.optD, startX, startY + (3 * rowSpacing), fontSize, Regular);
 
                 char playerChoice = '\0';
                 if (IsKeyPressed(KEY_A)) playerChoice = 'A';
@@ -626,7 +562,7 @@ int main(){
             }
     }
         // Drawing
-        BeginDrawing();
+        BeginTextureMode(target); 
         ClearBackground(BLACK); 
         
         if (currentState != STATE_VIEW_PILE){
@@ -800,12 +736,12 @@ int main(){
                 energyY + (capsuleHeight - textSize.y) / 2.0f
             };
             DrawTextEx(Bold, energyText.c_str(), textPos, energyFontSize, 1, WHITE);
-            drawDeck(hand, 530, Bold, p.getEnergy(), playerSelectedCard, false);
-            viewDrawPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 });
-            endTurnBtn.draw(Regular, Color{ 40, 40, 45, 255 }, Color{ 0, 185, 0, 255 }, Color{ 100, 100, 105, 255 });
+            drawDeck(hand, 530, Bold, p.getEnergy(), playerSelectedCard, false, virtualMousePos);
+            viewDrawPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
+            endTurnBtn.draw(Regular, Color{ 40, 40, 45, 255 }, Color{ 0, 185, 0, 255 }, Color{ 100, 100, 105, 255 }, virtualMousePos);
         } 
         else if (currentState ==  STATE_VIEW_PILE) {
-            backToTurnBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 });
+            backToTurnBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
         }
         else if (currentState == STATE_MATH_QUIZ) {
             DrawTextEx(Regular, "Current State: [ MATH QUIZ ]", Vector2{320,  240}, 32, 1, PURPLE);
@@ -861,7 +797,7 @@ int main(){
             } else {
                 skipBtn.text1 = "Skip";
             }
-            skipBtn.draw(Regular, Color{ 60, 60, 60, 255 }, Color{ 185, 0, 0, 255 }, WHITE);
+            skipBtn.draw(Regular, Color{ 60, 60, 60, 255 }, Color{ 185, 0, 0, 255 }, WHITE, virtualMousePos);
             if (quizTimer > 10.0f) {
                 DrawTextEx(SemiBold, "TIME'S UP! Press Space or Click Continue.", Vector2{490, skipBtn.rect.y + 10}, 20  , 1, RED);
             } 
@@ -889,9 +825,18 @@ int main(){
                 DrawTextEx(Regular, "You lose! Game Over", Vector2{320, 240}, 32, 1, RED);
             }
         }
+        EndTextureMode();
+        BeginDrawing();
+        ClearBackground(BLACK); 
+        DrawTexturePro(
+        target.texture,
+        Rectangle{0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height}, 
+        Rectangle{(currentScreenWidth - (virtualScreenWidth * scale)) * 0.5f, (currentScreenHeight - (virtualScreenHeight * scale)) * 0.5f, 
+            virtualScreenWidth * scale, virtualScreenHeight * scale }, Vector2{ 0, 0 }, 0.0f, WHITE);
         EndDrawing();
     }
     //Unload Resources
+    UnloadRenderTexture(target);
     UnloadFont(Thin);
     UnloadFont(Regular);
     UnloadFont(SemiBold);
