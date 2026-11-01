@@ -386,7 +386,7 @@ void drawPileView(const vector<int>& pile, Font font, Vector2 currentMousePos) {
         1,
         LIGHTGRAY
     );
-
+  
     // Card grid settings
     int columns = 6;
 
@@ -394,19 +394,191 @@ void drawPileView(const vector<int>& pile, Font font, Vector2 currentMousePos) {
     float cardHeight = 180.0f;
 
     float horizontalGap = 20.0f;
-    float verticalGap = 25.0f;
+    float verticalGap = 45.0f;
 
-    float totalWidth =
-        columns * cardWidth + (columns - 1) * horizontalGap;
+    float startY = 175.0f;
+    float viewHeight = 420.0f;
+
+    float totalWidth = columns * cardWidth + (columns - 1) * horizontalGap;
 
     float startX = (1280 - totalWidth) / 2;
-    float startY = 115.0f;
+
+    // Scrollbar settings
+    float scrollBarX = 1170.0f;
+    float scrollBarY = startY;
+    float scrollBarWidth = 14.0f;
+    float scrollBarHeight = viewHeight;
+
+    // Calculate total content height
+    int totalRows = (int)pile.size() / columns;
+
+    if (pile.size() % columns != 0) {
+        totalRows++;
+    }
+
+    float contentHeight = 0.0f;
+
+    if (totalRows > 0) {
+        contentHeight =
+            totalRows * cardHeight +
+            (totalRows - 1) * verticalGap;
+    }
+
+    // Calculate maximum scrolling distance
+    float maxScroll = contentHeight - viewHeight;
+
+    if (maxScroll < 0) {
+        maxScroll = 0;
+    }
+
+    // Store scrollbar information
+    static float scrollOffset = 0.0f;
+    static bool isDraggingScrollbar = false;
+    static float dragOffsetY = 0.0f;
+
+    // Mouse wheel scrolling
+    Rectangle scrollViewRect = {
+        startX - 25,
+        startY,
+        totalWidth + 50,
+        viewHeight
+    };
+
+    if (CheckCollisionPointRec(currentMousePos, scrollViewRect)) {
+
+        float wheelMove = GetMouseWheelMove();
+
+        scrollOffset -= wheelMove * 45.0f;
+    }
+
+    // Prevent scroll position from exceeding the limits
+    if (scrollOffset > maxScroll) {
+        scrollOffset = maxScroll;
+    }
+
+    if (scrollOffset < 0) {
+        scrollOffset = 0;
+    }
+
+    // Calculate scrollbar thumb size
+    float thumbHeight = scrollBarHeight;
+
+    if (contentHeight > 0) {
+        thumbHeight =
+            scrollBarHeight * (viewHeight / contentHeight);
+    }
+
+    if (thumbHeight < 40.0f) {
+        thumbHeight = 40.0f;
+    }
+
+    if (thumbHeight > scrollBarHeight) {
+        thumbHeight = scrollBarHeight;
+    }
+
+    // Calculate scrollbar thumb position
+    float thumbY = scrollBarY;
+
+    if (maxScroll > 0) {
+        thumbY +=
+            (scrollOffset / maxScroll) *
+            (scrollBarHeight - thumbHeight);
+    }
+
+    Rectangle thumbRect = {
+        scrollBarX,
+        thumbY,
+        scrollBarWidth,
+        thumbHeight
+    };
+
+    Rectangle trackRect = {
+        scrollBarX,
+        scrollBarY,
+        scrollBarWidth,
+        scrollBarHeight
+    };
+
+    // Handle scrollbar dragging
+    if (maxScroll > 0) {
+
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+            CheckCollisionPointRec(currentMousePos, trackRect)) {
+
+            if (CheckCollisionPointRec(currentMousePos, thumbRect)) {
+                isDraggingScrollbar = true;
+                dragOffsetY = currentMousePos.y - thumbY;
+            }
+            else {
+                // Click on track to move scrollbar
+                float newThumbY =
+                    currentMousePos.y - thumbHeight / 2.0f;
+
+                if (newThumbY < scrollBarY) {
+                    newThumbY = scrollBarY;
+                }
+
+                if (newThumbY >
+                    scrollBarY + scrollBarHeight - thumbHeight) {
+                    newThumbY =
+                        scrollBarY + scrollBarHeight - thumbHeight;
+                }
+
+                scrollOffset =
+                    ((newThumbY - scrollBarY) /
+                    (scrollBarHeight - thumbHeight)) * maxScroll;
+
+                isDraggingScrollbar = true;
+                dragOffsetY = thumbHeight / 2.0f;
+            }
+        }
+
+        if (isDraggingScrollbar) {
+
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+
+                float newThumbY =
+                    currentMousePos.y - dragOffsetY;
+
+                if (newThumbY < scrollBarY) {
+                    newThumbY = scrollBarY;
+                }
+
+                if (newThumbY >
+                    scrollBarY + scrollBarHeight - thumbHeight) {
+                    newThumbY =
+                        scrollBarY + scrollBarHeight - thumbHeight;
+                }
+
+                scrollOffset =
+                    ((newThumbY - scrollBarY) /
+                    (scrollBarHeight - thumbHeight)) * maxScroll;
+            }
+            else {
+                isDraggingScrollbar = false;
+            }
+        }
+    }
+    else {
+        isDraggingScrollbar = false;
+        scrollOffset = 0;
+    }
+
+    // Recalculate thumb position after dragging
+    thumbY = scrollBarY;
+
+    if (maxScroll > 0) {
+        thumbY +=
+            (scrollOffset / maxScroll) *
+            (scrollBarHeight - thumbHeight);
+    }
 
     // Prepare card animations
     static vector<CardAnimation> animations;
     static vector<int> previousPile;
 
     if (previousPile != pile) {
+
         animations.clear();
         animations.resize(pile.size());
 
@@ -421,30 +593,52 @@ void drawPileView(const vector<int>& pile, Font font, Vector2 currentMousePos) {
     // Find hovered card
     int hoveredIndex = -1;
 
-    for (int i = 0; i < (int)pile.size(); i++) {
+    Rectangle viewRect = {
+        startX,
+        startY,
+        totalWidth,
+        viewHeight
+    };
 
-        int row = i / columns;
-        int column = i % columns;
+    if (CheckCollisionPointRec(currentMousePos, viewRect)) {
 
-        float posX = startX + column * (cardWidth + horizontalGap);
-        float posY = startY + row * (cardHeight + verticalGap);
+        for (int i = 0; i < (int)pile.size(); i++) {
 
-        Rectangle cardRect = {
-            posX,
-            posY,
-            cardWidth,
-            cardHeight
-        };
+            int row = i / columns;
+            int column = i % columns;
 
-        if (CheckCollisionPointRec(currentMousePos, cardRect)) {
-            hoveredIndex = i;
+            float posX =
+                startX + column * (cardWidth + horizontalGap);
+
+            float posY =
+                startY + row * (cardHeight + verticalGap)
+                - scrollOffset;
+
+            Rectangle cardRect = {
+                posX,
+                posY,
+                cardWidth,
+                cardHeight
+            };
+
+            if (CheckCollisionPointRec(currentMousePos, cardRect)) {
+                hoveredIndex = i;
+            }
         }
     }
 
-    // Update animation
+    // Update animations
     for (int i = 0; i < (int)animations.size(); i++) {
         updateCardAnimation(animations[i], i == hoveredIndex);
     }
+
+    // Limit card drawing to the visible area
+    BeginScissorMode(
+        (int)(startX - 30),
+        (int)(startY - 75),
+        (int)(totalWidth + 60),
+        (int)(viewHeight + 75)
+    );
 
     // Draw normal cards first
     for (int i = 0; i < (int)pile.size(); i++) {
@@ -456,10 +650,15 @@ void drawPileView(const vector<int>& pile, Font font, Vector2 currentMousePos) {
         int row = i / columns;
         int column = i % columns;
 
-        float posX = startX + column * (cardWidth + horizontalGap);
-        float posY = startY + row * (cardHeight + verticalGap);
+        float posX =
+            startX + column * (cardWidth + horizontalGap);
+
+        float posY =
+            startY + row * (cardHeight + verticalGap)
+            - scrollOffset;
 
         int cardIndex = (int)pile.size() - 1 - i;
+
         Card currentCard = CARD_DATABASE[pile[cardIndex]];
 
         drawSingleCard(
@@ -483,10 +682,16 @@ void drawPileView(const vector<int>& pile, Font font, Vector2 currentMousePos) {
         int row = hoveredIndex / columns;
         int column = hoveredIndex % columns;
 
-        float posX = startX + column * (cardWidth + horizontalGap);
-        float posY = startY + row * (cardHeight + verticalGap);
+        float posX =
+            startX + column * (cardWidth + horizontalGap);
 
-        int cardIndex = (int)pile.size() - 1 - hoveredIndex;
+        float posY =
+            startY + row * (cardHeight + verticalGap)
+            - scrollOffset;
+
+        int cardIndex =
+            (int)pile.size() - 1 - hoveredIndex;
+
         Card currentCard = CARD_DATABASE[pile[cardIndex]];
 
         drawSingleCard(
@@ -503,6 +708,38 @@ void drawPileView(const vector<int>& pile, Font font, Vector2 currentMousePos) {
             font
         );
     }
+
+    EndScissorMode();
+
+    // Draw scrollbar track
+    DrawRectangleRounded(
+        trackRect,
+        0.5f,
+        8,
+        Color{ 45, 55, 70, 255 }
+    );
+
+    // Draw scrollbar thumb
+    Rectangle finalThumbRect = {
+        scrollBarX,
+        thumbY,
+        scrollBarWidth,
+        thumbHeight
+    };
+
+    Color thumbColor = Color{ 125, 145, 170, 255 };
+
+    if (isDraggingScrollbar ||
+        CheckCollisionPointRec(currentMousePos, finalThumbRect)) {
+        thumbColor = Color{ 185, 200, 220, 255 };
+    }
+
+    DrawRectangleRounded(
+        finalThumbRect,
+        0.5f,
+        8,
+        thumbColor
+    );
 }
 
 int drawDeck(
