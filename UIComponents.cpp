@@ -355,13 +355,12 @@ void drawSingleCard(
     );
 }
 
-void drawPileView(const vector<int>& pile, Font font, Vector2 currentMousePos) {
+void drawPileView(const vector<int>& pile, Font font, Vector2 currentMousePos, const string& title){
 
     // Draw background
     DrawRectangle(0, 0, 1280, 720, Color{ 20, 27, 40, 255 });
 
     // Draw title
-    string title = "Draw Pile";
     float titleSize = 36.0f;
     float titleWidth = MeasureTextEx(font, title.c_str(), titleSize, 1).x;
 

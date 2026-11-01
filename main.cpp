@@ -171,12 +171,17 @@ int main(){
     gameButton endTurnBtn;
     gameButton skipBtn;
     gameButton viewDrawPileBtn;
+    gameButton viewDiscardPileBtn;
     gameButton backToTurnBtn;     
     
+    // Init drawDeck
+    bool viewingDiscardPile = false;
+
     // Init button data
     endTurnBtn.init(1100, 410, 150, 50, "End Turn");
     skipBtn.init(320, 600, 150, 40, "Skip");
     viewDrawPileBtn.init(15, 560, 75, 85, "View", "Draw", "Pile");
+    viewDiscardPileBtn.init(1165, 560, 100, 85, "View", "Discard", "Pile");
     backToTurnBtn.init(15, 560, 75, 85, "Back", "To", "Turn");
 
     // Init Quiz buttons
@@ -250,7 +255,7 @@ int main(){
                         }
                     } 
                     else {
-                        if (!endTurnBtn.isHovered && !viewDrawPileBtn.isHovered) {
+                        if (!endTurnBtn.isHovered && !viewDrawPileBtn.isHovered && !viewDiscardPileBtn.isHovered) {
                             playerSelectedCard = -1;
                         }
                     }
@@ -287,13 +292,18 @@ int main(){
                     }
                     playCardTriggered = false; 
                 }
-
-                if (endTurnBtn.isClicked(realMousePos)) {
-                    endTurnTriggered = true;
-                }
-                if (viewDrawPileBtn.isClicked(realMousePos)) {
-                    lastState = STATE_PLAYER_TURN;
+                if (viewDrawPileBtn.isClicked(virtualMousePos)) {
+                    viewingDiscardPile = false;
+                    lastState = currentState;
                     currentState = STATE_VIEW_PILE;
+                }
+                if (viewDiscardPileBtn.isClicked(virtualMousePos)) {
+                    viewingDiscardPile = true;
+                    lastState = currentState;
+                    currentState = STATE_VIEW_PILE;
+                }
+                if (endTurnBtn.isClicked(virtualMousePos)) {
+                    endTurnTriggered = true;
                 }
                 if (IsKeyPressed(KEY_SPACE)) {
                     endTurnTriggered = true;
@@ -301,16 +311,17 @@ int main(){
                 if (endTurnTriggered){
                     discardHand(hand, discardPile);
                     turnFinalCalculatedDamage = 0; 
-                        if (totalQuestions > 0) {
-                            initialQuestions = totalQuestions;
-                            needNewQuestion = true;
-                            currentState = STATE_MATH_QUIZ;
-                            combatLogs.push_back("--- Math Quiz Start ---");
-                        } else {
-                            e.resetBlock();
-                            currentState = STATE_ENEMY_TURN;
-                            combatLogs.push_back("--- Enemy's Turn ---");
-                        }
+                    if (totalQuestions > 0) {
+                        initialQuestions = totalQuestions;
+                        needNewQuestion = true;
+                        currentState = STATE_MATH_QUIZ;
+                        combatLogs.push_back("--- Math Quiz Start ---");
+                    } 
+                    else {
+                        e.resetBlock();
+                        currentState = STATE_ENEMY_TURN;
+                        combatLogs.push_back("--- Enemy's Turn ---");
+                    }
                 }
                 break;
             }
@@ -625,17 +636,17 @@ int main(){
             DrawTextEx(Bold, energyText.c_str(), textPos, energyFontSize, 1, WHITE);
             drawDeck(hand, 490, Bold, p.getEnergy(), playerSelectedCard, false, virtualMousePos);
             viewDrawPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
+            viewDiscardPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
             endTurnBtn.draw(Regular, Color{ 40, 40, 45, 255 }, Color{ 0, 185, 0, 255 }, Color{ 100, 100, 105, 255 }, virtualMousePos);
         } 
         else if (currentState == STATE_VIEW_PILE) {
-            drawPileView(drawPile, SemiBold, virtualMousePos);
-            backToTurnBtn.draw(
-                SemiBold,
-                Color{ 35, 45, 60, 255 },
-                Color{ 60, 80, 115, 255 },
-                Color{ 110, 125, 145, 255 },
-                virtualMousePos
-            );
+            if (viewingDiscardPile) {
+                drawPileView(discardPile, SemiBold, virtualMousePos, "Discard Pile");
+            }
+            else {
+                drawPileView(drawPile, SemiBold, virtualMousePos, "Draw Pile");
+            }
+            backToTurnBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
         }
         else if (currentState == STATE_MATH_QUIZ) {
             DrawTextEx(Regular, "Current State: [ MATH QUIZ ]", Vector2{320,  240}, 32, 1, PURPLE);
