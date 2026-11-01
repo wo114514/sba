@@ -149,17 +149,60 @@ void drawSingleCard(
     }
 
     Rectangle cardRect = {
-        drawX, drawY, drawWidth, drawHeight
+    drawX, drawY, drawWidth, drawHeight
     };
 
-    // Draw card background and border
-    DrawRectangleRec(cardRect, baseColor);
-    DrawRectangleLinesEx(cardRect, 1.5f * scale, borderColor);
+    // Draw card shadow
+    Rectangle shadowRect = {
+        drawX + 4.0f * scale,
+        drawY + 5.0f * scale,
+        drawWidth,
+        drawHeight
+    };
+
+    DrawRectangleRounded(
+        shadowRect,
+        0.08f,
+        8,
+        Color{ 0, 0, 0, 110 }
+    );
+
+    // Draw outer card border
+    DrawRectangleRounded(
+        cardRect,
+        0.08f,
+        8,
+        borderColor
+    );
+
+    // Draw inner card background
+    Rectangle innerRect = {
+        drawX + 2.0f * scale,
+        drawY + 2.0f * scale,
+        drawWidth - 4.0f * scale,
+        drawHeight - 4.0f * scale
+    };
+
+    DrawRectangleRounded(
+        innerRect,
+        0.07f,
+        8,
+        baseColor
+    );
 
     // Draw energy cost
     float energyCircleX = drawX + 10.0f * scale;
     float energyCircleY = drawY;
 
+    // Draw energy circle shadow
+    DrawCircle(
+        energyCircleX,
+        energyCircleY + 2.0f * scale,
+        17.0f * scale,
+        Color{ 0, 0, 0, 120 }
+    );
+
+    // Draw energy circle
     DrawCircle(
         energyCircleX,
         energyCircleY,
@@ -167,6 +210,7 @@ void drawSingleCard(
         ORANGE
     );
 
+    // Draw energy circle border
     DrawCircleLines(
         energyCircleX,
         energyCircleY,
@@ -191,25 +235,19 @@ void drawSingleCard(
     // Draw card name
     string cardName = currentCard.name;
     int splitPos = (int)cardName.find_first_of("- ");
+    float nameFontSize = 22.0f * scale;
 
     if (splitPos != -1) {
         string firstLine = cardName.substr(0, splitPos);
         string secondLine = cardName.substr(splitPos + 1);
 
-        DrawTextEx(
-            font,
-            firstLine.c_str(),
-            Vector2{ textAlignX, drawY + 24.0f * scale },
-            22.0f * scale,
-            1,
-            WHITE
-        );
+        DrawTextEx(font, firstLine.c_str(), Vector2{ textAlignX, drawY + 24.0f * scale }, nameFontSize, 1, WHITE);
 
         DrawTextEx(
             font,
             secondLine.c_str(),
             Vector2{ textAlignX, drawY + 46.0f * scale },
-            22.0f * scale,
+            nameFontSize,
             1,
             WHITE
         );

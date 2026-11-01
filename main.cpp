@@ -236,7 +236,7 @@ int main(){
                     playCardTriggered = true;
                 }
                 endTurnBtn.text1 = TextFormat("End Turn %d", combatTurn);
-                int frameClickedIdx = drawDeck(hand, 530, Regular, p.getEnergy(), playerSelectedCard, true, virtualMousePos);
+                int frameClickedIdx = drawDeck(hand, 490, Regular, p.getEnergy(), playerSelectedCard, true, virtualMousePos);
                 if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
                     playerSelectedCard = -1;
                 }
@@ -623,7 +623,7 @@ int main(){
                 energyY + (capsuleHeight - textSize.y) / 2.0f
             };
             DrawTextEx(Bold, energyText.c_str(), textPos, energyFontSize, 1, WHITE);
-            drawDeck(hand, 530, Bold, p.getEnergy(), playerSelectedCard, false, virtualMousePos);
+            drawDeck(hand, 490, Bold, p.getEnergy(), playerSelectedCard, false, virtualMousePos);
             viewDrawPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
             endTurnBtn.draw(Regular, Color{ 40, 40, 45, 255 }, Color{ 0, 185, 0, 255 }, Color{ 100, 100, 105, 255 }, virtualMousePos);
         } 
