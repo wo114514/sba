@@ -30,4 +30,14 @@ struct quizButton {
     void draw(int fontSize, Font font);
 };
 
+int drawDeck(
+    const vector<int>& deck,
+    int startY,
+    Font font,
+    int playerEnergy,
+    int selectedCardIdx,
+    bool isUpdate,
+    Vector2 currentMousePos
+);
+
 #endif

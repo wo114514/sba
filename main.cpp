@@ -65,120 +65,6 @@ void discardHand(vector<int>& hand, vector<int>& discardPile){
     }
 }
 
-int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, int selectedCardIdx, bool isUpdate, Vector2 currentMousePos) {
-    if (deck.empty()) {
-        int textWidth = MeasureTextEx(font, "Your hand is empty!", 26, 1).x;
-        DrawTextEx(font, "Your hand is empty!", Vector2{(1280.0f - textWidth) / 2.0f, (float)startY + 50}, 26, 1, DARKGRAY);
-        return -1;
-    }
-
-    const float cardWidth = 140.0f;
-    const float cardHeight = 180.0f;
-    const float cardSpacing = 16.0f;
-
-    int numCards = deck.size();
-    float totalDeckWidth = (numCards * cardWidth) + ((numCards - 1) * cardSpacing);
-    float startX = (1280.0f - totalDeckWidth) / 2.0f;
-
-    int clickedIndex = -1;
-
-    for (int i = 0; i < numCards; i++) {
-        int cardID = deck[i];
-        Card currentCard = CARD_DATABASE[cardID];
-
-        float posX = startX + i * (cardWidth + cardSpacing);
-        float currentCardY = (float)startY;
-
-        Rectangle baseCheckRect = { posX, (float)startY, cardWidth, cardHeight };
-        bool isHovered = CheckCollisionPointRec(currentMousePos, baseCheckRect);
-
-        if (i == selectedCardIdx || isHovered) {
-            currentCardY = (float)startY - 40.0f;
-        }
-
-        Rectangle cardRect = { posX, currentCardY, cardWidth, cardHeight };
-
-        if (isUpdate && isHovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            clickedIndex = i;
-        }
-
-        Color baseColor = Color{ 30, 30, 40, 255 };
-        Color borderColor = GRAY; // Change border color
-
-        if (playerEnergy < currentCard.cost) {
-            borderColor = RED;
-        } else if (isHovered || i == selectedCardIdx) {
-            borderColor = GOLD;
-        }
-
-        if (isHovered || i == selectedCardIdx) {
-            baseColor = Color{ 50, 50, 70, 255 };
-        }
-
-        // Draw Cards and border
-        DrawRectangleRec(cardRect, baseColor);
-        DrawRectangleLinesEx(cardRect, 1, borderColor);
-
-        // Draw energy
-        float energyCircleX = posX + 10;
-        float energyCircleY = currentCardY;
-        DrawCircle(energyCircleX, energyCircleY, 16, ORANGE);
-        DrawCircleLines(energyCircleX, energyCircleY, 16, WHITE);
-        DrawTextEx(font, TextFormat("%d", currentCard.cost), Vector2{energyCircleX - 7, energyCircleY - 12}, 26, 1, WHITE);
-
-        float textAlignX = posX + 15;
-        string cardName = currentCard.name;
-        int splitPos = (int)cardName.find_first_of("- ");
-
-        if (splitPos != -1) {
-            string firstLine = cardName.substr(0, splitPos);
-            string secondLine = cardName.substr(splitPos + 1);
-            DrawTextEx(font, firstLine.c_str(), Vector2{textAlignX, currentCardY + 24}, 22, 1, WHITE);
-            DrawTextEx(font, secondLine.c_str(), Vector2{textAlignX, currentCardY + 46}, 22, 1, WHITE);
-        } else {
-            DrawTextEx(font, cardName.c_str(), Vector2{textAlignX, currentCardY + 24}, 22, 1, WHITE);
-        }
-
-        // Draw ATK
-        if (currentCard.damage > 0) {
-            DrawTextEx(font, TextFormat("ATK: %d", currentCard.damage), Vector2{textAlignX, currentCardY + 77}, 22, 1, RED);
-        }
-
-        // Draw DEF
-        if (currentCard.block > 0) {
-            float blockYOffset;
-            if (currentCard.damage > 0) {
-                blockYOffset = currentCardY + 99.0f;
-            } else {
-                blockYOffset = currentCardY + 77.0f;
-            }
-            DrawTextEx(font, TextFormat("DEF: %d", currentCard.block), Vector2{textAlignX, blockYOffset}, 22, 1, BLUE);
-        }
-
-        // Draw DRAW
-        if (currentCard.drawNumber > 0) {
-            float drawYOffset = currentCardY + 77.0f;
-            if (currentCard.damage > 0) { drawYOffset += 22.0f; }
-            if (currentCard.block > 0)  { drawYOffset += 22.0f; }
-            DrawTextEx(font, TextFormat("DRAW: %d", currentCard.drawNumber), Vector2{textAlignX, drawYOffset}, 22, 1, GOLD);
-        }
-
-        // Draw NRG
-        if (currentCard.energyGained > 0) {
-            float energyGainedYOffset = currentCardY + 77.0f;
-            if (currentCard.damage > 0)     { energyGainedYOffset += 22.0f; }
-            if (currentCard.block > 0)      { energyGainedYOffset += 22.0f; }
-            if (currentCard.drawNumber > 0) { energyGainedYOffset += 22.0f; }
-            DrawTextEx(font, TextFormat("ENG: +%d", currentCard.energyGained), Vector2{textAlignX, energyGainedYOffset}, 22, 1, ORANGE);
-        }
-
-        // Draw Card Index
-        DrawTextEx(font, TextFormat("#%d", i + 1), Vector2{posX + cardWidth - 34, currentCardY + cardHeight - 22}, 16, 1, WHITE);
-    }
-
-    return clickedIndex;
-}
-
 int main(){
     // Init Screen
     int screenWidth = 1280;
@@ -663,30 +549,35 @@ int main(){
             DrawTextEx(SemiBold, TextFormat("Player HP: %d / %d", p.getHp(), p.getMaxHp()), Vector2{50, 40}, 24, 1, BLUE);
             if (displayTotalDamage == 0) {
                 DrawTextEx(SemiBold, TextFormat("Player Damage: ---"), Vector2{50, 70}, 24, 1, BLUE);
-            } else {
+            } 
+            else {
                 DrawTextEx(SemiBold, TextFormat("Player Damage: %d", displayTotalDamage), Vector2{50, 70}, 24, 1, BLUE);
             }
             if (totalQuestions == 0) {
                 DrawTextEx(SemiBold, TextFormat("Player Questions: ---"), Vector2{50, 100}, 24, 1, BLUE);
-            } else {
+            } 
+            else {
                 DrawTextEx(SemiBold, TextFormat("Player Questions: %d", totalQuestions), Vector2{50, 100}, 24, 1, BLUE);
             }
             if (p.getBlock() == 0) {
                 DrawTextEx(SemiBold, TextFormat("Player Block: --- "), Vector2{50, 130}, 24, 1, BLUE);
-            } else {
+            } 
+            else {
                 DrawTextEx(SemiBold, TextFormat("Player Block: %d", p.getBlock()), Vector2{50, 130}, 24, 1, BLUE);
             }
 
             DrawTextEx(SemiBold, TextFormat("%s HP: %d / %d", e.getName().c_str(), e.getHp(), e.getMaxHp()), Vector2{900, 40}, 24, 1, RED);
             if (damgeText == "0") {
                 DrawTextEx(SemiBold, TextFormat("%s ATK: ---", e.getName().c_str()), Vector2{900, 70}, 24, 1, RED);
-            } else {
+            } 
+            else {
                 DrawTextEx(SemiBold, TextFormat("%s ATK: %s", e.getName().c_str(), damgeText.c_str()), Vector2{900, 70}, 24, 1, RED);
             }
             DrawTextEx(SemiBold, TextFormat("%s Intent: %s", e.getName().c_str(), enemyIntent.c_str()), Vector2{900, 100}, 24, 1, RED);
             if (e.getBlock() == 0) {
                 DrawTextEx(SemiBold, TextFormat("%s Block: ---", e.getName().c_str()), Vector2{900, 130}, 24, 1, RED);
-            } else {
+            } 
+            else {
                 DrawTextEx(SemiBold, TextFormat("%s Block: %d", e.getName().c_str(), e.getBlock()), Vector2{900, 130}, 24, 1, RED);
             }
 

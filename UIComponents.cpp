@@ -1,7 +1,9 @@
 #include "UIComponents.h"
+#include <cmath>
 #include <vector>
 #include <string>
 #include "raylib.h"
+#include "Card.h"
 #include <iostream>
 using namespace std;
 
@@ -79,4 +81,419 @@ void quizButton::draw(int fontSize, Font font) {
     DrawRectangleRec(rect, boxColor);
     DrawRectangleLinesEx(rect, 2, borderColor); 
     DrawTextEx(font, text.c_str(), Vector2{rect.x + 15, rect.y + 10}, fontSize, 1, textColor);
+}
+
+struct CardAnimation {
+    float hoverOffset;
+    float scale;
+};
+
+void updateCardAnimation(
+    CardAnimation& animation,
+    bool isActive
+) {
+    float targetOffset = 0.0f;
+    float targetScale = 1.0f;
+
+    if (isActive) {
+        targetOffset = 40.0f;
+        targetScale = 1.12f;
+    }
+
+    float animationSpeed = 8.0f * GetFrameTime();
+
+    if (animationSpeed > 1.0f) {
+        animationSpeed = 1.0f;
+    }
+
+    animation.hoverOffset +=
+        (targetOffset - animation.hoverOffset) * animationSpeed;
+
+    animation.scale +=
+        (targetScale - animation.scale) * animationSpeed;
+}
+
+// Draw a single card
+void drawSingleCard(
+    Card currentCard,
+    float posX,
+    float currentCardY,
+    float cardWidth,
+    float cardHeight,
+    float scale,
+    int cardIndex,
+    int playerEnergy,
+    bool isHovered,
+    bool isSelected,
+    Font font
+) {
+    // Scale the card around its center
+    float drawX = posX - (cardWidth * (scale - 1.0f) / 2.0f);
+    float drawY = currentCardY - (cardHeight * (scale - 1.0f) / 2.0f);
+
+    float drawWidth = cardWidth * scale;
+    float drawHeight = cardHeight * scale;
+
+    Color baseColor = Color{ 30, 30, 40, 255 };
+    Color borderColor = GRAY;
+
+    if (playerEnergy < currentCard.cost) {
+        borderColor = RED;
+    }
+    else if (isHovered || isSelected) {
+        borderColor = GOLD;
+    }
+
+    if (isHovered || isSelected) {
+        baseColor = Color{ 50, 50, 70, 255 };
+    }
+
+    Rectangle cardRect = {
+        drawX, drawY, drawWidth, drawHeight
+    };
+
+    // Draw card background and border
+    DrawRectangleRec(cardRect, baseColor);
+    DrawRectangleLinesEx(cardRect, 1.5f * scale, borderColor);
+
+    // Draw energy cost
+    float energyCircleX = drawX + 10.0f * scale;
+    float energyCircleY = drawY;
+
+    DrawCircle(
+        energyCircleX,
+        energyCircleY,
+        16.0f * scale,
+        ORANGE
+    );
+
+    DrawCircleLines(
+        energyCircleX,
+        energyCircleY,
+        16.0f * scale,
+        WHITE
+    );
+
+    DrawTextEx(
+        font,
+        TextFormat("%d", currentCard.cost),
+        Vector2{
+            energyCircleX - 7.0f * scale,
+            energyCircleY - 12.0f * scale
+        },
+        26.0f * scale,
+        1.0f,
+        WHITE
+    );
+
+    float textAlignX = drawX + 15.0f * scale;
+
+    // Draw card name
+    string cardName = currentCard.name;
+    int splitPos = (int)cardName.find_first_of("- ");
+
+    if (splitPos != -1) {
+        string firstLine = cardName.substr(0, splitPos);
+        string secondLine = cardName.substr(splitPos + 1);
+
+        DrawTextEx(
+            font,
+            firstLine.c_str(),
+            Vector2{ textAlignX, drawY + 24.0f * scale },
+            22.0f * scale,
+            1,
+            WHITE
+        );
+
+        DrawTextEx(
+            font,
+            secondLine.c_str(),
+            Vector2{ textAlignX, drawY + 46.0f * scale },
+            22.0f * scale,
+            1,
+            WHITE
+        );
+    }
+    else {
+        DrawTextEx(
+            font,
+            cardName.c_str(),
+            Vector2{ textAlignX, drawY + 24.0f * scale },
+            22.0f * scale,
+            1,
+            WHITE
+        );
+    }
+
+    // Draw attack
+    if (currentCard.damage > 0) {
+        DrawTextEx(
+            font,
+            TextFormat("ATK: %d", currentCard.damage),
+            Vector2{ textAlignX, drawY + 77.0f * scale },
+            22.0f * scale,
+            1,
+            RED
+        );
+    }
+
+    // Draw block
+    if (currentCard.block > 0) {
+        float blockYOffset = 77.0f;
+
+        if (currentCard.damage > 0) {
+            blockYOffset += 22.0f;
+        }
+
+        DrawTextEx(
+            font,
+            TextFormat("DEF: %d", currentCard.block),
+            Vector2{ textAlignX, drawY + blockYOffset * scale },
+            22.0f * scale,
+            1,
+            BLUE
+        );
+    }
+
+    // Draw card draw number
+    if (currentCard.drawNumber > 0) {
+        float drawYOffset = 77.0f;
+
+        if (currentCard.damage > 0) {
+            drawYOffset += 22.0f;
+        }
+
+        if (currentCard.block > 0) {
+            drawYOffset += 22.0f;
+        }
+
+        DrawTextEx(
+            font,
+            TextFormat("DRAW: %d", currentCard.drawNumber),
+            Vector2{ textAlignX, drawY + drawYOffset * scale },
+            22.0f * scale,
+            1,
+            GOLD
+        );
+    }
+
+    // Draw gained energy
+    if (currentCard.energyGained > 0) {
+        float energyGainedYOffset = 77.0f;
+
+        if (currentCard.damage > 0) {
+            energyGainedYOffset += 22.0f;
+        }
+
+        if (currentCard.block > 0) {
+            energyGainedYOffset += 22.0f;
+        }
+
+        if (currentCard.drawNumber > 0) {
+            energyGainedYOffset += 22.0f;
+        }
+
+        DrawTextEx(
+            font,
+            TextFormat("ENG: +%d", currentCard.energyGained),
+            Vector2{ textAlignX, drawY + energyGainedYOffset * scale },
+            22.0f * scale,
+            1,
+            ORANGE
+        );
+    }
+
+    // Draw card index
+    DrawTextEx(
+        font,
+        TextFormat("#%d", cardIndex + 1),
+        Vector2{
+            drawX + (cardWidth - 34.0f) * scale,
+            drawY + (cardHeight - 22.0f) * scale
+        },
+        16.0f * scale,
+        1,
+        WHITE
+    );
+}
+
+int drawDeck(
+    const vector<int>& deck,
+    int startY,
+    Font font,
+    int playerEnergy,
+    int selectedCardIdx,
+    bool isUpdate,
+    Vector2 currentMousePos
+) {
+    // Store animation data between frames
+    static vector<CardAnimation> animations;
+    static vector<int> previousDeck;
+
+    // Reset animation data when hand changes
+    if (deck != previousDeck) {
+        animations.clear();
+
+        for (int i = 0; i < (int)deck.size(); i++) {
+            CardAnimation animation;
+            animation.hoverOffset = 0.0f;
+            animation.scale = 1.0f;
+
+            animations.push_back(animation);
+        }
+
+        previousDeck = deck;
+    }
+
+    if (deck.empty()) {
+        int textWidth = MeasureTextEx(
+            font, "Your hand is empty!", 26, 1
+        ).x;
+
+        DrawTextEx(
+            font,
+            "Your hand is empty!",
+            Vector2{
+                (1280.0f - textWidth) / 2.0f,
+                (float)startY + 50
+            },
+            26, 1, DARKGRAY
+        );
+
+        return -1;
+    }
+
+    const float cardWidth = 140.0f;
+    const float cardHeight = 180.0f;
+    const float cardSpacing = 16.0f;
+
+    int numCards = (int)deck.size();
+
+    float totalDeckWidth =
+        (numCards * cardWidth) +
+        ((numCards - 1) * cardSpacing);
+
+    float startX = (1280.0f - totalDeckWidth) / 2.0f;
+
+    int clickedIndex = -1;
+
+    // Store hover information
+    vector<bool> hoverStates(numCards, false);
+
+    // Update animation and detect mouse clicks
+    for (int i = 0; i < numCards; i++) {
+        float posX = startX + i * (cardWidth + cardSpacing);
+
+        Rectangle baseCheckRect = {
+            posX,
+            (float)startY,
+            cardWidth,
+            cardHeight
+        };
+
+        bool isHovered = CheckCollisionPointRec(
+            currentMousePos,
+            baseCheckRect
+        );
+
+        bool isSelected = (i == selectedCardIdx);
+
+        hoverStates[i] = isHovered;
+
+        updateCardAnimation(
+            animations[i],
+            isHovered || isSelected
+        );
+
+        if (isUpdate &&
+            isHovered &&
+            IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+
+            clickedIndex = i;
+        }
+    }
+
+    for (int i = 0; i < numCards; i++) {
+        if (hoverStates[i] || i == selectedCardIdx) {
+            continue;
+        }
+
+        int cardID = deck[i];
+        Card currentCard = CARD_DATABASE[cardID];
+
+        float posX = startX + i * (cardWidth + cardSpacing);
+
+        float currentCardY =
+            (float)startY - animations[i].hoverOffset;
+
+        drawSingleCard(
+            currentCard,
+            posX,
+            currentCardY,
+            cardWidth,
+            cardHeight,
+            animations[i].scale,
+            i,
+            playerEnergy,
+            false,
+            false,
+            font
+        );
+    }
+
+    if (selectedCardIdx >= 0 && selectedCardIdx < numCards && !hoverStates[selectedCardIdx]) {
+
+        int cardID = deck[selectedCardIdx];
+        Card currentCard = CARD_DATABASE[cardID];
+
+        float posX = startX +
+            selectedCardIdx * (cardWidth + cardSpacing);
+
+        float currentCardY =
+            (float)startY - animations[selectedCardIdx].hoverOffset;
+
+        drawSingleCard(
+            currentCard,
+            posX,
+            currentCardY,
+            cardWidth,
+            cardHeight,
+            animations[selectedCardIdx].scale,
+            selectedCardIdx,
+            playerEnergy,
+            false,
+            true,
+            font
+        );
+    }
+
+    for (int i = 0; i < numCards; i++) {
+        if (!hoverStates[i]) {
+            continue;
+        }
+
+        int cardID = deck[i];
+        Card currentCard = CARD_DATABASE[cardID];
+
+        float posX = startX + i * (cardWidth + cardSpacing);
+
+        float currentCardY =
+            (float)startY - animations[i].hoverOffset;
+
+        drawSingleCard(
+            currentCard,
+            posX,
+            currentCardY,
+            cardWidth,
+            cardHeight,
+            animations[i].scale,
+            i,
+            playerEnergy,
+            true,
+            (i == selectedCardIdx),
+            font
+        );
+    }
+
+    return clickedIndex;
 }

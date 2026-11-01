@@ -3,6 +3,10 @@ echo =======================================
 echo Compiling ICT SBA Project (Raylib C++)...
 echo =======================================
 
+echo Checking CPP files...
+dir /b *.cpp
+echo =======================================
+
 rem 1. Remove old executable to prevent running an unmodified version
 if exist main.exe del main.exe
 
