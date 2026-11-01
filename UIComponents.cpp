@@ -113,6 +113,8 @@ void updateCardAnimation(
         (targetScale - animation.scale) * animationSpeed;
 }
 
+
+
 // Draw a single card
 void drawSingleCard(
     Card currentCard,
@@ -920,4 +922,43 @@ int drawDeck(
     }
 
     return clickedIndex;
+}
+
+void drawMovingCard(
+    CardMoveAnimation animation,
+    int playerEnergy,
+    Font font
+) {
+    const float cardWidth = 140.0f;
+    const float cardHeight = 180.0f;
+
+    // Calculate current position
+    float currentX =
+        animation.startPosition.x +
+        (animation.targetPosition.x - animation.startPosition.x)
+        * animation.progress;
+
+    float currentY =
+        animation.startPosition.y +
+        (animation.targetPosition.y - animation.startPosition.y)
+        * animation.progress;
+
+    // Calculate current scale
+    float scale = 0.35f + 0.65f * animation.progress;
+
+    Card currentCard = CARD_DATABASE[animation.cardID];
+
+    drawSingleCard(
+        currentCard,
+        currentX,
+        currentY,
+        cardWidth,
+        cardHeight,
+        scale,
+        0,
+        playerEnergy,
+        false,
+        false,
+        font
+    );
 }

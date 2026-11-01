@@ -34,25 +34,48 @@ void shuffleDeck(vector<string>& logs, vector<int>& discardPile, vector<int>& dr
     }
 }
 
-void drawCards(vector<string>& logs, vector<int>& drawPile, vector<int>& hand, vector<int>& discardPile, int numToDraw) {
+void drawCards(
+    vector<string>& logs,
+    vector<int>& drawPile,
+    vector<int>& hand,
+    vector<int>& discardPile,
+    vector<CardMoveAnimation>& cardAnimations,
+    int numToDraw
+) {
     while (numToDraw > 0) {
+
         if (drawPile.empty()) {
             shuffleDeck(logs, discardPile, drawPile);
+
             if (drawPile.empty()) {
                 logs.push_back("Not enough cards to draw");
-                break; 
+                break;
             }
         }
-        int topCardID = drawPile.back(); 
-        if (hand.size() < 7){
-            hand.push_back(topCardID);   
+
+        int topCardID = drawPile.back();
+
+        // Check whether the hand will exceed 7 cards
+        if (hand.size() + cardAnimations.size() < 7) {
+
+            CardMoveAnimation animation;
+
+            animation.cardID = topCardID;
+            animation.startPosition = { 0.0f, 0.0f };
+            animation.targetPosition = { 0.0f, 0.0f };
+            animation.progress = 0.0f;
+            animation.delay = 0.0f;
+            animation.isActive = false;
+
+            cardAnimations.push_back(animation);
         }
-        else{
-            discardPile.push_back(topCardID);   
+        else {
+            discardPile.push_back(topCardID);
             logs.push_back("Hand is full");
         }
-        drawPile.pop_back();            
-        numToDraw--; 
+
+        drawPile.pop_back();
+        numToDraw--;
     }
 }
 
@@ -177,7 +200,11 @@ int main(){
     // Init drawDeck
     bool viewingDiscardPile = false;
 
-    // Init button data
+    // Init animations
+    vector<CardMoveAnimation> cardAnimations;
+    bool isCardAnimationPlaying = false;
+
+    // Init button 
     endTurnBtn.init(1100, 410, 150, 50, "End Turn");
     skipBtn.init(320, 600, 150, 40, "Skip");
     viewDrawPileBtn.init(15, 560, 75, 85, "View", "Draw", "Pile");
@@ -193,7 +220,7 @@ int main(){
 
     // Init decks
     shuffleDeck(combatLogs, discardPile, drawPile); 
-    drawCards(combatLogs, drawPile, hand, discardPile, 5);
+    drawCards(combatLogs, drawPile, hand, discardPile, cardAnimations, 5);
 
     // Main Game Loop
     while (!WindowShouldClose()) {
@@ -225,8 +252,77 @@ int main(){
         if (virtualMousePos.y < 0) virtualMousePos.y = 0;
         if (virtualMousePos.y > 720) virtualMousePos.y = 720;
 
+        // Update card movement animation
+        if (!cardAnimations.empty()) {
+
+            CardMoveAnimation& animation = cardAnimations[0];
+
+            // Wait before starting the next card
+            if (animation.delay > 0.0f) {
+                animation.delay -= GetFrameTime();
+            }
+            else {
+
+                // Start animation
+                if (!animation.isActive) {
+
+                    animation.startPosition = {
+                        52.5f - 70.0f,
+                        602.5f - 90.0f
+                    };
+
+                    // Calculate target position based on current hand size
+                    int newHandSize = (int)hand.size() + 1;
+
+                    float cardWidth = 140.0f;
+                    float cardSpacing = 16.0f;
+
+                    float totalWidth =
+                        newHandSize * cardWidth +
+                        (newHandSize - 1) * cardSpacing;
+
+                    float startX = (1280.0f - totalWidth) / 2.0f;
+
+                    animation.targetPosition = {
+                        startX + hand.size() * (cardWidth + cardSpacing),
+                        490.0f
+                    };
+
+                    animation.progress = 0.0f;
+                    animation.isActive = true;
+                }
+
+                // Move the card
+                animation.progress += GetFrameTime() * 5.0f;
+
+                if (animation.progress >= 1.0f) {
+
+                    animation.progress = 1.0f;
+
+                    // Add card to hand after animation finishes
+                    hand.push_back(animation.cardID);
+
+                    // Remove completed animation
+                    cardAnimations.erase(cardAnimations.begin());
+
+                    // Add a small delay before the next card
+                    if (!cardAnimations.empty()) {
+                        cardAnimations[0].delay = 0.001f;
+                    }
+                }
+            }
+        }
+
+        // Check whether any animation is still playing
+        isCardAnimationPlaying = !cardAnimations.empty();
+
         switch (currentState) {
             case STATE_PLAYER_TURN:{
+
+                if (isCardAnimationPlaying) {
+                    break;
+                }
+
                 bool playCardTriggered = false;
                 bool endTurnTriggered = false;
                
@@ -276,7 +372,7 @@ int main(){
                             p.addBlock(currentCard.block, combatLogs);
                         }          
                         if(currentCard.drawNumber > 0){
-                            drawCards(combatLogs, drawPile, hand, discardPile, currentCard.drawNumber);
+                            drawCards(combatLogs, drawPile, hand, discardPile, cardAnimations,currentCard.drawNumber);
                         }
                         if(currentCard.energyGained > 0){
                             p.gainEnergy(currentCard.energyGained, combatLogs);
@@ -449,7 +545,7 @@ int main(){
                     
                     p.resetEnergy();
                     p.resetBlock();
-                    drawCards(combatLogs, drawPile, hand, discardPile, 5);
+                    drawCards(combatLogs, drawPile, hand, discardPile, cardAnimations, 5);
                 }
                 break;
             }
@@ -638,6 +734,10 @@ int main(){
             viewDrawPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
             viewDiscardPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
             endTurnBtn.draw(Regular, Color{ 40, 40, 45, 255 }, Color{ 0, 185, 0, 255 }, Color{ 100, 100, 105, 255 }, virtualMousePos);
+            // Draw moving card on top of other UI
+            if (!cardAnimations.empty() && cardAnimations[0].isActive) {
+                drawMovingCard(cardAnimations[0], p.getEnergy(), Bold);
+            }
         } 
         else if (currentState == STATE_VIEW_PILE) {
             if (viewingDiscardPile) {

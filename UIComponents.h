@@ -6,6 +6,24 @@
 #include <vector>
 using namespace std;
 
+struct CardMoveAnimation {
+    int cardID;
+
+    Vector2 startPosition;
+    Vector2 targetPosition;
+
+    float progress;
+    float delay;
+
+    bool isActive;
+};
+
+void drawMovingCard(
+    CardMoveAnimation animation,
+    int playerEnergy,
+    Font font
+);
+
 struct gameButton {
     Rectangle rect;
     string text1;
