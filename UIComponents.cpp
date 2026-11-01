@@ -355,6 +355,156 @@ void drawSingleCard(
     );
 }
 
+void drawPileView(const vector<int>& pile, Font font, Vector2 currentMousePos) {
+
+    // Draw background
+    DrawRectangle(0, 0, 1280, 720, Color{ 20, 27, 40, 255 });
+
+    // Draw title
+    string title = "Draw Pile";
+    float titleSize = 36.0f;
+    float titleWidth = MeasureTextEx(font, title.c_str(), titleSize, 1).x;
+
+    DrawTextEx(
+        font,
+        title.c_str(),
+        Vector2{ (1280 - titleWidth) / 2, 25 },
+        titleSize,
+        1,
+        WHITE
+    );
+
+    // Draw card count
+    string countText = "Cards: " + to_string(pile.size());
+    float countWidth = MeasureTextEx(font, countText.c_str(), 20, 1).x;
+
+    DrawTextEx(
+        font,
+        countText.c_str(),
+        Vector2{ (1280 - countWidth) / 2, 70 },
+        20,
+        1,
+        LIGHTGRAY
+    );
+
+    // Card grid settings
+    int columns = 6;
+
+    float cardWidth = 145.0f;
+    float cardHeight = 180.0f;
+
+    float horizontalGap = 20.0f;
+    float verticalGap = 25.0f;
+
+    float totalWidth =
+        columns * cardWidth + (columns - 1) * horizontalGap;
+
+    float startX = (1280 - totalWidth) / 2;
+    float startY = 115.0f;
+
+    // Prepare card animations
+    static vector<CardAnimation> animations;
+    static vector<int> previousPile;
+
+    if (previousPile != pile) {
+        animations.clear();
+        animations.resize(pile.size());
+
+        for (int i = 0; i < (int)animations.size(); i++) {
+            animations[i].hoverOffset = 0.0f;
+            animations[i].scale = 1.0f;
+        }
+
+        previousPile = pile;
+    }
+
+    // Find hovered card
+    int hoveredIndex = -1;
+
+    for (int i = 0; i < (int)pile.size(); i++) {
+
+        int row = i / columns;
+        int column = i % columns;
+
+        float posX = startX + column * (cardWidth + horizontalGap);
+        float posY = startY + row * (cardHeight + verticalGap);
+
+        Rectangle cardRect = {
+            posX,
+            posY,
+            cardWidth,
+            cardHeight
+        };
+
+        if (CheckCollisionPointRec(currentMousePos, cardRect)) {
+            hoveredIndex = i;
+        }
+    }
+
+    // Update animation
+    for (int i = 0; i < (int)animations.size(); i++) {
+        updateCardAnimation(animations[i], i == hoveredIndex);
+    }
+
+    // Draw normal cards first
+    for (int i = 0; i < (int)pile.size(); i++) {
+
+        if (i == hoveredIndex) {
+            continue;
+        }
+
+        int row = i / columns;
+        int column = i % columns;
+
+        float posX = startX + column * (cardWidth + horizontalGap);
+        float posY = startY + row * (cardHeight + verticalGap);
+
+        int cardIndex = (int)pile.size() - 1 - i;
+        Card currentCard = CARD_DATABASE[pile[cardIndex]];
+
+        drawSingleCard(
+            currentCard,
+            posX,
+            posY - animations[i].hoverOffset,
+            cardWidth,
+            cardHeight,
+            animations[i].scale,
+            i,
+            999,
+            false,
+            false,
+            font
+        );
+    }
+
+    // Draw hovered card last
+    if (hoveredIndex != -1) {
+
+        int row = hoveredIndex / columns;
+        int column = hoveredIndex % columns;
+
+        float posX = startX + column * (cardWidth + horizontalGap);
+        float posY = startY + row * (cardHeight + verticalGap);
+
+        int cardIndex = (int)pile.size() - 1 - hoveredIndex;
+        Card currentCard = CARD_DATABASE[pile[cardIndex]];
+
+        drawSingleCard(
+            currentCard,
+            posX,
+            posY - animations[hoveredIndex].hoverOffset,
+            cardWidth,
+            cardHeight,
+            animations[hoveredIndex].scale,
+            hoveredIndex,
+            999,
+            true,
+            false,
+            font
+        );
+    }
+}
+
 int drawDeck(
     const vector<int>& deck,
     int startY,

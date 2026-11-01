@@ -40,4 +40,10 @@ int drawDeck(
     Vector2 currentMousePos
 );
 
+void drawPileView(
+    const vector<int>& pile,
+    Font font,
+    Vector2 currentMousePos
+);
+
 #endif
