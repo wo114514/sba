@@ -357,7 +357,7 @@ void drawSingleCard(
     );
 }
 
-void drawPileView(const vector<int>& pile, Font font, Vector2 currentMousePos, const string& title){
+void viewPile(const vector<int>& pile, Font font, Vector2 currentMousePos, const string& title){
 
     // Draw background
     DrawRectangle(0, 0, 1280, 720, Color{ 20, 27, 40, 255 });
@@ -944,7 +944,16 @@ void drawMovingCard(
         * animation.progress;
 
     // Calculate current scale
-    float scale = 0.35f + 0.65f * animation.progress;
+    float scale;
+
+    if (animation.isDiscarding) {
+        // Discard animation: shrink
+        scale = 1.0f - 0.65f * animation.progress;
+    }
+    else {
+        // Draw animation: grow
+        scale = 0.35f + 0.65f * animation.progress;
+    }
 
     Card currentCard = CARD_DATABASE[animation.cardID];
 

@@ -16,6 +16,7 @@ struct CardMoveAnimation {
     float delay;
 
     bool isActive;
+    bool isDiscarding;
 };
 
 void drawMovingCard(
@@ -50,7 +51,7 @@ struct quizButton {
 
 int drawDeck(
     const vector<int>& deck,
-    int startY,
+    int startY, 
     Font font,
     int playerEnergy,
     int selectedCardIdx,
@@ -58,6 +59,6 @@ int drawDeck(
     Vector2 currentMousePos
 );
 
-void drawPileView(const vector<int>& pile, Font font, Vector2 currentMousePos, const string& title);
+void viewPile(const vector<int>& pile, Font font, Vector2 currentMousePos, const string& title);
 
 #endif

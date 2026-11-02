@@ -66,7 +66,7 @@ void drawCards(
             animation.progress = 0.0f;
             animation.delay = 0.0f;
             animation.isActive = false;
-
+            animation.isDiscarding = false;
             cardAnimations.push_back(animation);
         }
         else {
@@ -79,11 +79,51 @@ void drawCards(
     }
 }
 
-void discardHand(vector<int>& hand, vector<int>& discardPile){
-    if (!hand.empty()){
-        for (int i = 0; i < hand.size(); i++){
-            discardPile.push_back(hand[i]);
+void discardHand(
+    vector<int>& hand,
+    vector<CardMoveAnimation>& cardAnimations
+) {
+    if (!hand.empty()) {
+
+        const float cardWidth = 140.0f;
+        const float cardHeight = 180.0f;
+        const float cardSpacing = 16.0f;
+
+        int numCards = (int)hand.size();
+
+        float totalWidth =
+            numCards * cardWidth +
+            (numCards - 1) * cardSpacing;
+
+        float startX = (1280.0f - totalWidth) / 2.0f;
+
+        for (int i = 0; i < numCards; i++) {
+
+            CardMoveAnimation animation;
+
+            animation.cardID = hand[i];
+
+            // Starting position: current hand position
+            animation.startPosition = {
+                startX + i * (cardWidth + cardSpacing),
+                490.0f
+            };
+
+            // Target position: Discard Pile button
+            animation.targetPosition = {
+                1215.0f - cardWidth / 2.0f,
+                602.5f - cardHeight / 2.0f
+            };
+
+            animation.progress = 0.0f;
+            animation.delay = 0.0f;
+            animation.isActive = false;
+            animation.isDiscarding = true;
+
+            cardAnimations.push_back(animation);
         }
+
+        // Clear hand after creating animations
         hand.clear();
     }
 }
@@ -111,7 +151,7 @@ int main(){
     SetRandomSeed((unsigned int)time(NULL)); 
 
     // Init Quesion's difficulties
-    int difficulty = 1; 
+    int difficulty = 3; 
 
     // Init font
     Font Thin = LoadFont("assets/fonts/JetBrainsMono-Thin.ttf");  
@@ -203,6 +243,8 @@ int main(){
     // Init animations
     vector<CardMoveAnimation> cardAnimations;
     bool isCardAnimationPlaying = false;
+    bool waitingForDiscardAnimation = false;
+    GameState nextStateAfterDiscard;
 
     // Init button 
     endTurnBtn.init(1100, 410, 150, 50, "End Turn");
@@ -265,49 +307,71 @@ int main(){
 
                 // Start animation
                 if (!animation.isActive) {
+                    // Only calculate positions for draw animations
+                    if (!animation.isDiscarding) {
 
-                    animation.startPosition = {
-                        52.5f - 70.0f,
-                        602.5f - 90.0f
-                    };
+                        animation.startPosition = {
+                            52.5f - 70.0f,
+                            602.5f - 90.0f
+                        };
 
-                    // Calculate target position based on current hand size
-                    int newHandSize = (int)hand.size() + 1;
+                        int newHandSize = (int)hand.size() + 1;
 
-                    float cardWidth = 140.0f;
-                    float cardSpacing = 16.0f;
+                        float cardWidth = 140.0f;
+                        float cardSpacing = 16.0f;
 
-                    float totalWidth =
-                        newHandSize * cardWidth +
-                        (newHandSize - 1) * cardSpacing;
+                        float totalWidth =
+                            newHandSize * cardWidth +
+                            (newHandSize - 1) * cardSpacing;
 
-                    float startX = (1280.0f - totalWidth) / 2.0f;
+                        float startX = (1280.0f - totalWidth) / 2.0f;
 
-                    animation.targetPosition = {
-                        startX + hand.size() * (cardWidth + cardSpacing),
-                        490.0f
-                    };
+                        animation.targetPosition = {
+                            startX + hand.size() * (cardWidth + cardSpacing),
+                            490.0f
+                        };
+                    }
 
                     animation.progress = 0.0f;
                     animation.isActive = true;
                 }
 
                 // Move the card
-                animation.progress += GetFrameTime() * 5.0f;
+                animation.progress += GetFrameTime() * 7.5f;
 
                 if (animation.progress >= 1.0f) {
 
                     animation.progress = 1.0f;
 
-                    // Add card to hand after animation finishes
-                    hand.push_back(animation.cardID);
+                    // Move card to the correct pile after animation
+                    if (animation.isDiscarding) {
+                        discardPile.push_back(animation.cardID);
+                    }
+                    else {
+                        hand.push_back(animation.cardID);
+                    }
 
                     // Remove completed animation
                     cardAnimations.erase(cardAnimations.begin());
 
-                    // Add a small delay before the next card
+                    // Check whether all animations are finished
                     if (!cardAnimations.empty()) {
                         cardAnimations[0].delay = 0.001f;
+                    }
+                    else if (waitingForDiscardAnimation) {
+
+                        // All discard animations are finished
+                        waitingForDiscardAnimation = false;
+
+                        currentState = nextStateAfterDiscard;
+
+                        if (currentState == STATE_MATH_QUIZ) {
+                            combatLogs.push_back("--- Math Quiz Start ---");
+                        }
+                        else {
+                            e.resetBlock();
+                            combatLogs.push_back("--- Enemy's Turn ---");
+                        }
                     }
                 }
             }
@@ -404,19 +468,37 @@ int main(){
                 if (IsKeyPressed(KEY_SPACE)) {
                     endTurnTriggered = true;
                 }
-                if (endTurnTriggered){
-                    discardHand(hand, discardPile);
-                    turnFinalCalculatedDamage = 0; 
+                if (endTurnTriggered) {
+                    // Create discard animations
+                    discardHand(hand, cardAnimations);
+
+                    turnFinalCalculatedDamage = 0;
+
                     if (totalQuestions > 0) {
                         initialQuestions = totalQuestions;
                         needNewQuestion = true;
-                        currentState = STATE_MATH_QUIZ;
-                        combatLogs.push_back("--- Math Quiz Start ---");
-                    } 
+
+                        nextStateAfterDiscard = STATE_MATH_QUIZ;
+                    }
                     else {
-                        e.resetBlock();
-                        currentState = STATE_ENEMY_TURN;
-                        combatLogs.push_back("--- Enemy's Turn ---");
+                        nextStateAfterDiscard = STATE_ENEMY_TURN;
+                    }
+
+                    // Wait for discard animations
+                    if (!cardAnimations.empty()) {
+                        waitingForDiscardAnimation = true;
+                    }
+                    else {
+                        // No cards to discard
+                        currentState = nextStateAfterDiscard;
+
+                        if (currentState == STATE_MATH_QUIZ) {
+                            combatLogs.push_back("--- Math Quiz Start ---");
+                        }
+                        else {
+                            e.resetBlock();
+                            combatLogs.push_back("--- Enemy's Turn ---");
+                        }
                     }
                 }
                 break;
@@ -431,6 +513,10 @@ int main(){
                 break;
             }
             case STATE_MATH_QUIZ:{
+                if (isCardAnimationPlaying) {
+                    break;
+                }
+
                 if (needNewQuestion) {
                     currentQuiz = g.generateAlgebraQuestion(difficulty);
                     quizTimer = 0.0f;
@@ -741,10 +827,10 @@ int main(){
         } 
         else if (currentState == STATE_VIEW_PILE) {
             if (viewingDiscardPile) {
-                drawPileView(discardPile, SemiBold, virtualMousePos, "Discard Pile");
+                viewPile(discardPile, SemiBold, virtualMousePos, "Discard Pile");
             }
             else {
-                drawPileView(drawPile, SemiBold, virtualMousePos, "Draw Pile");
+                viewPile(drawPile, SemiBold, virtualMousePos, "Draw Pile");
             }
             backToTurnBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
         }
