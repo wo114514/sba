@@ -971,3 +971,149 @@ void drawMovingCard(
         font
     );
 }
+
+void drawShuffleCard(ShuffleCardAnimation animation, Font font) {
+
+    const float cardWidth = 140.0f;
+    const float cardHeight = 180.0f;
+
+    float progress = animation.progress;
+
+    if (progress < 0.0f) progress = 0.0f;
+    if (progress > 1.0f) progress = 1.0f;
+
+    // Calculate card position along the parabolic path
+    float currentX =
+        animation.startPosition.x +
+        (animation.targetPosition.x - animation.startPosition.x) * progress;
+
+    float currentY =
+    animation.startPosition.y +
+    (animation.targetPosition.y - animation.startPosition.y) * progress
+    - animation.arcHeight * 4.0f * progress * (1.0f - progress);
+
+    // Card size: 15% of original size
+    float smallWidth = cardWidth * 0.15f;
+    float smallHeight = cardHeight * 0.15f;
+
+    // Card centre
+    Vector2 cardCenter = {
+        currentX + cardWidth / 2.0f,
+        currentY + cardHeight / 2.0f
+    };
+
+    // Draw thick light beam behind the card
+    float trailStart = progress - 0.35f;
+
+    if (trailStart < 0.0f) {
+        trailStart = 0.0f;
+    }
+
+    const int trailSegments = 12;
+
+    for (int i = 0; i < trailSegments; i++) {
+
+        float t1 = trailStart +
+            (progress - trailStart) * i / trailSegments;
+
+        float t2 = trailStart +
+            (progress - trailStart) * (i + 1) / trailSegments;
+
+        float x1 = animation.startPosition.x +
+            (animation.targetPosition.x - animation.startPosition.x) * t1
+            + cardWidth / 2.0f;
+
+        float y1 = animation.startPosition.y +
+            (animation.targetPosition.y - animation.startPosition.y) * t1
+            - animation.arcHeight * 4.0f * t1 * (1.0f - t1)
+            + cardHeight / 2.0f;
+
+        float x2 = animation.startPosition.x +
+            (animation.targetPosition.x - animation.startPosition.x) * t2
+            + cardWidth / 2.0f;
+
+        float y2 = animation.startPosition.y +
+            (animation.targetPosition.y - animation.startPosition.y) * t2
+            - animation.arcHeight * 4.0f * t2 * (1.0f - t2)
+            + cardHeight / 2.0f;
+
+        float alpha = (float)(i + 1) / trailSegments;
+
+        Color outerGlow = {
+            50, 150, 255,
+            (unsigned char)(alpha * 90)
+        };
+
+        Color middleGlow = {
+            100, 200, 255,
+            (unsigned char)(alpha * 150)
+        };
+
+        Color innerGlow = {
+            220, 245, 255,
+            (unsigned char)(alpha * 220)
+        };
+
+        // Wide outer beam
+        DrawLineEx(
+            { x1, y1 },
+            { x2, y2 },
+            36.0f,
+            outerGlow
+        );
+
+        // Middle beam
+        DrawLineEx(
+            { x1, y1 },
+            { x2, y2 },
+            22.0f,
+            middleGlow
+        );
+
+        // Bright inner beam
+        DrawLineEx(
+            { x1, y1 },
+            { x2, y2 },
+            8.0f,
+            innerGlow
+        );
+    }
+
+    // Draw a simple glowing card without card information
+    Rectangle cardRect = {
+        cardCenter.x - smallWidth / 2.0f,
+        cardCenter.y - smallHeight / 2.0f,
+        smallWidth,
+        smallHeight
+    };
+
+    // Card outer glow
+    DrawRectangleRounded(
+        {
+            cardRect.x - 5.0f,
+            cardRect.y - 5.0f,
+            cardRect.width + 10.0f,
+            cardRect.height + 10.0f
+        },
+        0.25f,
+        8,
+        Fade(SKYBLUE, 0.45f)
+    );
+
+    // Card body
+    DrawRectangleRounded(
+        cardRect,
+        0.2f,
+        8,
+        RAYWHITE
+    );
+
+    // Card border
+    DrawRectangleRoundedLinesEx(
+        cardRect,
+        0.2f,
+        8,
+        2.0f,
+        SKYBLUE
+    );
+}

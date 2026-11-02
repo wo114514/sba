@@ -16,20 +16,77 @@ enum GameState {
     STATE_GAME_OVER
 };
 
-void shuffleDeck(vector<string>& logs, vector<int>& discardPile, vector<int>& drawPile) {
-    if (!discardPile.empty()){
-        for (int i = 0; i < discardPile.size(); i++){
+// Global Init animations
+vector<CardMoveAnimation> cardAnimations;
+bool isCardAnimationPlaying = false;
+bool waitingForDiscardAnimation = false;
+GameState nextStateAfterDiscard;
+vector<ShuffleCardAnimation> shuffleAnimations;
+bool isShuffleAnimationPlaying = false;
+bool waitingForShuffleAnimation = false;
+int pendingDrawNumber = 0;
+
+void shuffleDeck(
+    vector<string>& logs,
+    vector<int>& discardPile,
+    vector<int>& drawPile,
+    vector<ShuffleCardAnimation>& shuffleAnimations
+) {
+    if (!discardPile.empty()) {
+
+        const float cardWidth = 140.0f;
+        const float cardHeight = 180.0f;
+
+        for (int i = 0; i < (int)discardPile.size(); i++) {
+            ShuffleCardAnimation animation;
+
+            animation.cardID = discardPile[i];
+
+            animation.startPosition = {
+                1215.0f - cardWidth / 2.0f,
+                602.5f - cardHeight / 2.0f
+            };
+
+            animation.targetPosition = {
+                52.5f - cardWidth / 2.0f,
+                602.5f - cardHeight / 2.0f
+            };
+
+            animation.progress = 0.0f;
+
+            // 每張卡牌有少量不同的起飛延遲
+            animation.delay = GetRandomValue(0, 8) / 100.0f;
+
+            // 飛行速度略有不同
+            animation.speed = GetRandomValue(125, 170) / 100.0f;
+
+            // 飛行軌跡略有不同
+            animation.arcHeight = (float)GetRandomValue(130, 190);
+
+            animation.isActive = false;
+
+            shuffleAnimations.push_back(animation);
+
             drawPile.push_back(discardPile[i]);
         }
+
         discardPile.clear();
     }
-    if (!drawPile.empty()){
-        for (int i = 0; i < drawPile.size(); i++){
-            int swapIndex = GetRandomValue(0, drawPile.size() - 1);
+
+    if (!drawPile.empty()) {
+
+        for (int i = 0; i < (int)drawPile.size(); i++) {
+
+            int swapIndex = GetRandomValue(
+                0,
+                (int)drawPile.size() - 1
+            );
+
             int tempCard = drawPile[i];
             drawPile[i] = drawPile[swapIndex];
             drawPile[swapIndex] = tempCard;
         }
+
         logs.push_back("Cards reshuffled");
     }
 }
@@ -42,10 +99,29 @@ void drawCards(
     vector<CardMoveAnimation>& cardAnimations,
     int numToDraw
 ) {
+    // Wait if shuffle animation is still playing
+    if (!shuffleAnimations.empty()) {
+        pendingDrawNumber += numToDraw;
+        waitingForShuffleAnimation = true;
+        return;
+    }
     while (numToDraw > 0) {
 
         if (drawPile.empty()) {
-            shuffleDeck(logs, discardPile, drawPile);
+
+            shuffleDeck(
+                logs,
+                discardPile,
+                drawPile,
+                shuffleAnimations
+            );
+
+            // Wait for shuffle animation to finish
+            if (!shuffleAnimations.empty()) {
+                pendingDrawNumber += numToDraw;
+                waitingForShuffleAnimation = true;
+                return;
+            }
 
             if (drawPile.empty()) {
                 logs.push_back("Not enough cards to draw");
@@ -67,6 +143,7 @@ void drawCards(
             animation.delay = 0.0f;
             animation.isActive = false;
             animation.isDiscarding = false;
+
             cardAnimations.push_back(animation);
         }
         else {
@@ -240,12 +317,6 @@ int main(){
     // Init drawDeck
     bool viewingDiscardPile = false;
 
-    // Init animations
-    vector<CardMoveAnimation> cardAnimations;
-    bool isCardAnimationPlaying = false;
-    bool waitingForDiscardAnimation = false;
-    GameState nextStateAfterDiscard;
-
     // Init button 
     endTurnBtn.init(1100, 410, 150, 50, "End Turn");
     skipBtn.init(320, 600, 150, 40, "Skip");
@@ -261,7 +332,7 @@ int main(){
     quizButtons[3].init('D');
 
     // Init decks
-    shuffleDeck(combatLogs, discardPile, drawPile); 
+    shuffleDeck(combatLogs, discardPile, drawPile,  shuffleAnimations); 
     drawCards(combatLogs, drawPile, hand, discardPile, cardAnimations, 5);
 
     // Main Game Loop
@@ -377,13 +448,57 @@ int main(){
             }
         }
 
-        // Check whether any animation is still playing
-        isCardAnimationPlaying = !cardAnimations.empty();
+        // Update all shuffle animations simultaneously
+        for (int i = (int)shuffleAnimations.size() - 1; i >= 0; i--) {
+
+            ShuffleCardAnimation& animation = shuffleAnimations[i];
+
+            // Wait for this card's individual starting delay
+            if (animation.delay > 0.0f) {
+                animation.delay -= GetFrameTime();
+                continue;
+            }
+
+            // Start the animation
+            animation.isActive = true;
+
+            // Update animation progress using individual speed
+            animation.progress += GetFrameTime() * animation.speed;
+
+            if (animation.progress >= 1.0f) {
+
+                animation.progress = 1.0f;
+
+                // Remove completed animation
+                shuffleAnimations.erase(shuffleAnimations.begin() + i);
+            }
+        }
+
+        // Check whether shuffle animation is still playing
+        isShuffleAnimationPlaying = !shuffleAnimations.empty();
+
+        // Resume drawing after all cards have arrived
+        if (shuffleAnimations.empty() && waitingForShuffleAnimation) {
+
+            int cardsToDraw = pendingDrawNumber;
+
+            pendingDrawNumber = 0;
+            waitingForShuffleAnimation = false;
+
+            drawCards(
+                combatLogs,
+                drawPile,
+                hand,
+                discardPile,
+                cardAnimations,
+                cardsToDraw
+            );
+        }
 
         switch (currentState) {
             case STATE_PLAYER_TURN:{
 
-                if (isCardAnimationPlaying) {
+                if (isCardAnimationPlaying || isShuffleAnimationPlaying) {
                     break;
                 }
 
@@ -820,6 +935,12 @@ int main(){
             viewDrawPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
             viewDiscardPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
             endTurnBtn.draw(Regular, Color{ 40, 40, 45, 255 }, Color{ 0, 185, 0, 255 }, Color{ 100, 100, 105, 255 }, virtualMousePos);
+            // Draw shuffle animation
+            for (int i = 0; i < (int)shuffleAnimations.size(); i++) {
+                if (shuffleAnimations[i].isActive) {
+                    drawShuffleCard(shuffleAnimations[i], Bold);
+                }
+            }
             // Draw moving card on top of other UI
             if (!cardAnimations.empty() && cardAnimations[0].isActive) {
                 drawMovingCard(cardAnimations[0], p.getEnergy(), Bold);

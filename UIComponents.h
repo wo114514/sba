@@ -8,20 +8,31 @@ using namespace std;
 
 struct CardMoveAnimation {
     int cardID;
-
     Vector2 startPosition;
     Vector2 targetPosition;
-
     float progress;
     float delay;
-
     bool isActive;
     bool isDiscarding;
 };
-
 void drawMovingCard(
     CardMoveAnimation animation,
     int playerEnergy,
+    Font font
+);
+
+struct ShuffleCardAnimation {
+    int cardID;
+    Vector2 startPosition;
+    Vector2 targetPosition;
+    float progress;
+    float delay;
+    float speed;    
+    float arcHeight;
+    bool isActive;
+};
+void drawShuffleCard(
+    ShuffleCardAnimation animation,
     Font font
 );
 
