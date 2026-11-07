@@ -228,7 +228,7 @@ void viewPile(const vector<int>& pile, Font font, Vector2 currentMousePos, const
     DrawTextEx(font, countText.c_str(), Vector2{ (1280 - countWidth) / 2, 70 }, 20, 1, LIGHTGRAY);
 
     int columns = 6;
-    float cardWidth = 145.0f;
+    float cardWidth = 130.0f;
     float cardHeight = 180.0f;
     float horizontalGap = 20.0f;
     float verticalGap = 45.0f;
@@ -467,7 +467,7 @@ int drawDeck(const vector<int>& deck, int startY, Font font, int playerEnergy, i
         return -1;
     }
 
-    const float cardWidth = 140.0f;
+    const float cardWidth = 130.0f;
     const float cardHeight = 180.0f;
     const float cardSpacing = 16.0f;
 
