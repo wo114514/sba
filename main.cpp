@@ -20,6 +20,7 @@ vector<CardMoveAnimation> cardAnimations;
 bool isCardAnimationPlaying = false;
 bool waitingForDiscardAnimation = false;
 GameState nextStateAfterDiscard;
+
 vector<ShuffleCardAnimation> shuffleAnimations;
 bool isShuffleAnimationPlaying = false;
 bool waitingForShuffleAnimation = false;
@@ -131,7 +132,6 @@ int main() {
     InitWindow(screenWidth, screenHeight, "Slay the Math");
     SetWindowMinSize(1280, 720);
     RenderTexture2D target = LoadRenderTexture(virtualScreenWidth, virtualScreenHeight);
-    SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
     SetTargetFPS(60);
 
     Image icon = LoadImage("assets/img/icon.png");
@@ -141,7 +141,7 @@ int main() {
 
     SetRandomSeed((unsigned int)time(NULL));
 
-    int difficulty = 3;
+    int difficulty = 1;
 
     Font Thin = LoadFont("assets/fonts/JetBrainsMono-Thin.ttf");
     Font Regular = LoadFont("assets/fonts/JetBrainsMono-Regular.ttf");
@@ -166,11 +166,12 @@ int main() {
         e = Enemy("Hexagonal Ghost", 304, 304, 0, 4, 1, 3);
     }
 
-    vector<int> drawPile = { 9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9 };
+    vector<int> drawPile = { 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
     vector<int> hand = {};
     vector<int> discardPile = {};
 
-    GameState currentState = STATE_PLAYER_TURN;
+    // State Machine
+    GameState currentState = STATE_MENU;
     GameState lastState = STATE_PLAYER_TURN;
 
     int combatTurn = 1;
@@ -190,15 +191,24 @@ int main() {
 
     float quizTimer = 10.0f;
     float enemyTurnTimer = 0.0f;
-
+    
+    bool viewingDiscardPile = false;
+    
+    // Buttons
+    gameButton easyButton;
+    gameButton normalButton;
+    gameButton hardButton;
+    gameButton startButton;
     gameButton endTurnBtn;
     gameButton skipBtn;
     gameButton viewDrawPileBtn;
     gameButton viewDiscardPileBtn;
     gameButton backToTurnBtn;
 
-    bool viewingDiscardPile = false;
-
+    easyButton.init(350, 360, 160, 60, "Easy");
+    normalButton.init(560, 360, 160, 60, "Normal");
+    hardButton.init(770, 360, 160, 60, "Hard");
+    startButton.init(490, 490, 300, 70, "START");
     endTurnBtn.init(1100, 410, 150, 50, "End Turn");
     skipBtn.init(320, 600, 150, 40, "Skip");
     viewDrawPileBtn.init(15, 560, 75, 85, "View", "Draw", "Pile");
@@ -228,13 +238,11 @@ int main() {
         int currentScreenWidth = GetScreenWidth();
         int currentScreenHeight = GetScreenHeight();
         float scale = min((float)currentW / 1280.0f, (float)currentH / 720.0f);
-
         float offsetX = (currentW - (1280.0f * scale)) * 0.5f;
         float offsetY = (currentH - (720.0f * scale)) * 0.5f;
 
         Vector2 realMousePos = GetMousePosition();
         Vector2 virtualMousePos = { 0 };
-
         virtualMousePos.x = (realMousePos.x - offsetX) / scale;
         virtualMousePos.y = (realMousePos.y - offsetY) / scale;
 
@@ -253,42 +261,32 @@ int main() {
                 if (!animation.isActive) {
                     if (!animation.isDiscarding) {
                         animation.startPosition = { 52.5f - 70.0f, 602.5f - 90.0f };
-
+                        
                         int newHandSize = (int)hand.size() + 1;
-
                         float cardWidth = 140.0f;
                         float cardSpacing = 16.0f;
-
                         float totalWidth = newHandSize * cardWidth + (newHandSize - 1) * cardSpacing;
                         float startX = (1280.0f - totalWidth) / 2.0f;
-
                         animation.targetPosition = { startX + hand.size() * (cardWidth + cardSpacing), 490.0f };
                     }
-
                     animation.progress = 0.0f;
                     animation.isActive = true;
                 }
-
                 animation.progress += GetFrameTime() * 7.5f;
-
                 if (animation.progress >= 1.0f) {
                     animation.progress = 1.0f;
-
                     if (animation.isDiscarding) {
                         discardPile.push_back(animation.cardID);
                     }
                     else {
                         hand.push_back(animation.cardID);
                     }
-
                     cardAnimations.erase(cardAnimations.begin());
-
                     if (!cardAnimations.empty()) {
                         cardAnimations[0].delay = 0.001f;
                     }
                     else if (waitingForDiscardAnimation) {
                         waitingForDiscardAnimation = false;
-
                         currentState = nextStateAfterDiscard;
 
                         if (currentState == STATE_MATH_QUIZ) {
@@ -332,8 +330,24 @@ int main() {
         }
 
         switch (currentState) {
+            case STATE_MENU: {
+                if (startButton.isClicked(virtualMousePos)) {
+                    currentState = STATE_PLAYER_TURN;
+                }
+                if (easyButton.isClicked(virtualMousePos)) {
+                    difficulty = 1;
+                }
+                if (normalButton.isClicked(virtualMousePos)) {
+                    difficulty = 2;
+                }
+                if (hardButton.isClicked(virtualMousePos)) {
+                    difficulty = 3;
+                }
+                break;
+            }
             case STATE_PLAYER_TURN: {
-                if (isCardAnimationPlaying || isShuffleAnimationPlaying) {
+                if (isCardAnimationPlaying || isShuffleAnimationPlaying || !cardAnimations.empty() || !shuffleAnimations.empty() 
+|| waitingForDiscardAnimation || waitingForShuffleAnimation|| pendingDrawNumber > 0) {
                     break;
                 }
 
@@ -384,6 +398,11 @@ int main() {
                         combatLogs.push_back(TextFormat("Played %s", currentCard.name.c_str()));
                         p.useEnergy(currentCard.cost);
 
+                        //Discard the card first to avoid affect of drawing number
+                        discardPile.push_back(cardID);
+                        hand.erase(hand.begin() + playerSelectedCard);
+                        playerSelectedCard = -1;
+
                         if (currentCard.damage > 0) {
                             totalQuestions++;
                             turnBasedDamage.push_back(currentCard.damage);
@@ -401,9 +420,7 @@ int main() {
                             p.gainEnergy(currentCard.energyGained, combatLogs);
                         }
 
-                        discardPile.push_back(cardID);
-                        hand.erase(hand.begin() + playerSelectedCard);
-                        playerSelectedCard = -1;
+                        
                     }
                     else {
                         combatLogs.push_back("Not enough energy!");
@@ -465,7 +482,6 @@ int main() {
 
                 break;
             }
-
             case STATE_VIEW_PILE: {
                 if (IsKeyPressed(KEY_SPACE)) {
                     currentState = lastState;
@@ -477,7 +493,6 @@ int main() {
 
                 break;
             }
-
             case STATE_MATH_QUIZ: {
                 if (isCardAnimationPlaying) {
                     break;
@@ -522,7 +537,6 @@ int main() {
                 }
 
                 bool skipTriggered = false;
-
                 if (quizTimer <= 10.0f) {
                     if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && skipBtn.isHovered) || IsKeyPressed(KEY_SPACE)) {
                         skipTriggered = true;
@@ -530,10 +544,9 @@ int main() {
                 }
 
                 bool continueTriggered = false;
-
                 if (quizTimer > 10.0f) {
                     if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && skipBtn.isHovered) || IsKeyPressed(KEY_SPACE)) {
-                        skipTriggered = true;
+                        continueTriggered = true;
                     }
                 }
 
@@ -588,31 +601,23 @@ int main() {
                 break;
             }
 
-            case STATE_ENEMY_TURN: {
-                
+            case STATE_ENEMY_TURN: {               
                 enemyTurnTimer += GetFrameTime();
-
                 if (enemyTurnTimer >= 1.0f) {
                     enemyTurnTimer = 0.0f;
-
                     e.changeIntent(p, combatLogs);
-
                     if (p.getHp() <= 0) {
                         currentState = STATE_GAME_OVER;
                         break;
                     }
-
                     currentState = STATE_PLAYER_TURN;
                     combatLogs.push_back("--- Player's Turn ---");
                     combatTurn++;
                     turnFinalCalculatedDamage = 0;
-
                     p.resetEnergy();
                     p.resetBlock();
-
                     drawCards(combatLogs, drawPile, hand, discardPile, cardAnimations, 5);
                 }
-
                 break;
             }
         }
@@ -780,10 +785,31 @@ int main() {
                 DrawTextEx(Bold, combatLogs[i].c_str(), Vector2{ fixedLogX, (float)logY }, 20, 1, LIGHTGRAY);
             }
         }
+        if (currentState == STATE_MENU) {
+            DrawTextEx(SemiBold, "SLAY THE MATHS", Vector2{ 430, 150 }, 56, 2, GOLD);
+            DrawTextEx(SemiBold, "A Mathematical Card Battle", Vector2{ 480, 220 }, 24, 1, LIGHTGRAY);
+            DrawTextEx(SemiBold, "SELECT DIFFICULTY", Vector2{ 515, 310 }, 28, 1, WHITE);
 
-        if (currentState == STATE_PLAYER_TURN) {
+            if (difficulty == 1) {
+                DrawTextEx(SemiBold, "Difficulty: EASY", Vector2{ 515, 430 }, 30, 1, GREEN);
+            }
+            else if (difficulty == 2) {
+                DrawTextEx(SemiBold, "Difficulty: NORMAL", Vector2{ 515, 430 }, 30, 1, GOLD);
+            }
+            else if (difficulty == 3) {
+                DrawTextEx(SemiBold, "Difficulty: HARD", Vector2{ 515, 430 }, 30, 1, RED);
+            }
+
+            easyButton.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
+            normalButton.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
+            hardButton.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
+            startButton.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
+        }
+        else if (currentState == STATE_PLAYER_TURN) {
             DrawTextEx(SemiBold, "Current State: [ PLAYER TURN ]", Vector2{ 320, 240 }, 32, 1, GOLD);
-            DrawTextEx(SemiBold, "Press [ SPACE ] or click the button to end your turn", Vector2{ 320, 280 }, 26, 1, GRAY);
+            DrawTextEx(SemiBold, "Click or input index number to select card", Vector2{ 320, 280 }, 26, 1, Color{ 200, 200, 200, 255 });
+            DrawTextEx(SemiBold, "Double click or press Enter to play card", Vector2{ 320, 310 }, 26, 1, Color{ 200, 200, 200, 255 });
+            DrawTextEx(SemiBold, "Press [ SPACE ] or click the button to end your turn", Vector2{ 320, 340 }, 26, 1, Color{ 200, 200, 200, 255 });
 
             float capsuleWidth = 68.0f;
             float capsuleHeight = 36.0f;
@@ -791,9 +817,9 @@ int main() {
             float energyY = 512.0f;
 
             Rectangle energyRect = { energyX, energyY, capsuleWidth, capsuleHeight };
-            Color energyBg = Color{ 210, 95, 30, 255 };
+            Color energyBackground = Color{ 210, 95, 30, 255 };
 
-            DrawRectangleRounded(energyRect, 1.0f, 4, energyBg);
+            DrawRectangleRounded(energyRect, 1.0f, 4, energyBackground);
             DrawRectangleRoundedLinesEx(energyRect, 1.0f, 4, 2.0f, GOLD);
 
             string energyText = TextFormat("%d/%d", p.getEnergy(), p.getMaxEnergy());
@@ -811,7 +837,7 @@ int main() {
 
             viewDrawPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
             viewDiscardPileBtn.draw(SemiBold, Color{ 35, 45, 60, 255 }, Color{ 60, 80, 115, 255 }, Color{ 110, 125, 145, 255 }, virtualMousePos);
-            endTurnBtn.draw(Regular, Color{ 40, 40, 45, 255 }, Color{ 0, 185, 0, 255 }, Color{ 100, 100, 105, 255 }, virtualMousePos);
+            endTurnBtn.draw(Regular, Color{ 40, 40, 45, 255 }, Color{ 0, 150, 0, 255 }, Color{ 100, 100, 105, 255 }, virtualMousePos);
 
             for (int i = 0; i < (int)shuffleAnimations.size(); i++) {
                 if (shuffleAnimations[i].isActive) {
@@ -941,7 +967,7 @@ int main() {
 
         EndDrawing();
     }
-
+    //Unload
     UnloadRenderTexture(target);
     UnloadFont(Thin);
     UnloadFont(Regular);

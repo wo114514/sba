@@ -10,6 +10,6 @@ const Card CARD_DATABASE[] = {
     {"Dash", 2, 11, 11, 0, 0},          // 6
     {"Pommel Strike", 1, 9, 0, 1, 0},   // 7
     {"Shrug It Off", 1, 0, 8, 1, 0},    // 8
-    {"Battle Trance", 0, 0, 0, 3, 0},   // 9
+    {"Battle Trance", 0, 0, 0, 2, 0},   // 9
     {"Seeing Red", 0, 0, 0, 0, 2}       // 10
 };
